@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#B80D1D"/>
+      <stop offset="0.48" stop-color="#E21B2D"/>
+      <stop offset="1" stop-color="#8E0715"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFF2A6"/>
+      <stop offset="0.35" stop-color="#FFD34D"/>
+      <stop offset="0.72" stop-color="#F5A900"/>
+      <stop offset="1" stop-color="#B96A00"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.88"/>
+      <stop offset="0.28" stop-color="#FFF7EE" stop-opacity="0.58"/>
+      <stop offset="0.68" stop-color="#FFFFFF" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#FFDCCB" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="pupil" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#21040A"/>
+      <stop offset="0.55" stop-color="#070207"/>
+      <stop offset="1" stop-color="#3D0911"/>
+    </linearGradient>
+    <linearGradient id="stripe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF8E8" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#FFE8C7" stop-opacity="0.62"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#3A0208" flood-opacity="0.35"/>
+    </filter>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+    <clipPath id="roundClip">
+      <rect x="0" y="0" width="1080" height="1920" rx="194.4" />
+    </clipPath>
+    
+  </defs>
+  
+  <rect width="1080" height="1920" fill="#120205"/>
+  <rect x="0" y="0" width="1080" height="1920" fill="url(#bg)" opacity="0.96"/>
+  <ellipse cx="250" cy="330" rx="430" ry="250" fill="#FFFFFF" opacity="0.06" transform="rotate(-25 250 330)"/>
+  <g transform="translate(140 690) scale(0.78)">
+    <rect width="1024" height="1024" rx="185" fill="#8F0716" opacity="0.28"/>
+    <rect x="34" y="34" width="956" height="956" rx="165" fill="none" stroke="url(#gold)" stroke-width="20" opacity="0.92"/>
+    <path d="M 125 512 C 285 270, 739 270, 899 512 C 739 754, 285 754, 125 512 Z"
+          fill="url(#glass)" stroke="#FFFFFF" stroke-opacity="0.88" stroke-width="17"/>
+    <circle cx="512" cy="512" r="225" fill="url(#gold)" stroke="#FFF2B3" stroke-width="13"/>
+    <circle cx="512" cy="512" r="138" fill="url(#pupil)" stroke="#6E2B09" stroke-width="11"/>
+    <circle cx="470" cy="470" r="33" fill="#FFFFFF"/>
+    <circle cx="500" cy="440" r="15" fill="#FFFFFF" opacity="0.42"/>
+  </g>
+
+</svg>

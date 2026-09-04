@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#B80D1D"/>
+      <stop offset="0.48" stop-color="#E21B2D"/>
+      <stop offset="1" stop-color="#8E0715"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFF2A6"/>
+      <stop offset="0.35" stop-color="#FFD34D"/>
+      <stop offset="0.72" stop-color="#F5A900"/>
+      <stop offset="1" stop-color="#B96A00"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.88"/>
+      <stop offset="0.28" stop-color="#FFF7EE" stop-opacity="0.58"/>
+      <stop offset="0.68" stop-color="#FFFFFF" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#FFDCCB" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="pupil" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#21040A"/>
+      <stop offset="0.55" stop-color="#070207"/>
+      <stop offset="1" stop-color="#3D0911"/>
+    </linearGradient>
+    <linearGradient id="stripe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF8E8" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#FFE8C7" stop-opacity="0.62"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#3A0208" flood-opacity="0.35"/>
+    </filter>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+    <clipPath id="roundClip">
+      <rect x="0" y="0" width="1080" height="1080" rx="194.4" />
+    </clipPath>
+    
+  </defs>
+  <rect width="1080" height="1080" fill="url(#bg)"/>
+<rect x="42" y="42" width="996" height="996" rx="190" fill="none" stroke="url(#gold)" stroke-width="26"/>
+</svg>
