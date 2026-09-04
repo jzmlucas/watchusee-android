@@ -157,7 +157,7 @@ fun SearchScreen(
                                     color = MaterialTheme.colorScheme.onBackground
                                 )
                                 LazyVerticalGrid(
-                                    columns = GridCells.Fixed(3),
+                                    columns = GridCells.Fixed(2),
                                     contentPadding = PaddingValues(
                                         start = 16.dp,
                                         top = 0.dp,
@@ -183,12 +183,12 @@ fun SearchScreen(
                         }
                     }
                     is SearchUiState.Loading -> {
-                        MovieGridSkeleton(columns = 3)
+                        MovieGridSkeleton(columns = 2)
                     }
                     is SearchUiState.Success -> {
                         LazyVerticalGrid(
                             state = gridState,
-                            columns = GridCells.Fixed(3),
+                            columns = GridCells.Fixed(2),
                             contentPadding = PaddingValues(
                                 start = 16.dp,
                                 top = 8.dp,
@@ -237,11 +237,7 @@ fun SearchScreen(
                                         } else {
                                             onRequireLogin { viewModel.toggleWatched(movie.id) }
                                         }
-                                    },
-                                    swipeLeftIcon = Icons.Default.Bookmark,
-                                    swipeRightIcon = Icons.Default.Visibility,
-                                    swipeLeftColor = MaterialTheme.colorScheme.primary,
-                                    swipeRightColor = Color(0xFF2E7D32)
+                                    }
                                 )
                             }
                         }

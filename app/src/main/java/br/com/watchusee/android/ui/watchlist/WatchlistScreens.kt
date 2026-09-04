@@ -31,6 +31,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -594,7 +596,7 @@ private fun WatchlistContent(
     isWatchedTab: Boolean = false
 ) {
     when (uiState) {
-        is WatchlistUiState.Loading -> MovieGridSkeleton(modifier, columns = 3)
+        is WatchlistUiState.Loading -> MovieGridSkeleton(modifier, columns = 2)
         is WatchlistUiState.Empty -> {
             AnimatedContent(
                 targetState = showEmptyAnimation,
@@ -616,7 +618,7 @@ private fun WatchlistContent(
         is WatchlistUiState.Success -> {
             LazyVerticalGrid(
                 state = gridState,
-                columns = GridCells.Fixed(3),
+                columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(
                     start = 16.dp,
                     top = 8.dp,
@@ -631,7 +633,7 @@ private fun WatchlistContent(
                     items = uiState.items,
                     key = { _, item -> item.movie.id },
                     span = { index, _ ->
-                        if (index == 0) GridItemSpan(3) else GridItemSpan(1)
+                        if (index == 0) GridItemSpan(2) else GridItemSpan(1)
                     }
                 ) { index, item ->
                     val movie = item.movie
@@ -656,11 +658,7 @@ private fun WatchlistContent(
                             onWatchedClick = if (!isWatchedTab) { { onAction?.invoke(movie.id) } } else null,
                             onToWatchClick = if (isWatchedTab) { { onAction?.invoke(movie.id) } } else null,
                             onSwipeLeft = { onRemove(movie.id) },
-                            onSwipeRight = { onAction?.invoke(movie.id) },
-                            swipeLeftIcon = Icons.Default.Delete,
-                            swipeRightIcon = actionIcon ?: Icons.Default.CheckCircle,
-                            swipeLeftColor = MaterialTheme.colorScheme.error,
-                            swipeRightColor = if (isWatchedTab) MaterialTheme.colorScheme.primary else Color(0xFF2E7D32)
+                            onSwipeRight = { onAction?.invoke(movie.id) }
                         )
                     }
                 }
@@ -728,6 +726,16 @@ private fun LargeMovieCard(
     var prevToWatch by remember { mutableStateOf(isToWatch) }
     var prevWatched by remember { mutableStateOf(isWatched) }
 
+    // Drag and Drop States
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    var isDragging by remember { mutableStateOf(false) }
+    val animatedDragOffset by animateFloatAsState(
+        targetValue = dragOffsetY,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "drag_offset"
+    )
+    val haptic = LocalHapticFeedback.current
+
     LaunchedEffect(isToWatch, isWatched) {
         val isRemoved = (prevToWatch && !isToWatch) || (prevWatched && !isWatched)
         val icon = when {
@@ -760,6 +768,39 @@ private fun LargeMovieCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(240.dp)
+            .pointerInput(Unit) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = {
+                        isDragging = true
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        dragOffsetY += dragAmount.y
+                    },
+                    onDragEnd = {
+                        if (dragOffsetY < -150f) {
+                            onWatchedClick?.invoke()
+                            onToWatchClick?.invoke() // For Watched tab, this moves back to watchlist
+                        } else if (dragOffsetY > 150f) {
+                            onDeleteClick?.invoke()
+                        }
+                        dragOffsetY = 0f
+                        isDragging = false
+                    },
+                    onDragCancel = {
+                        dragOffsetY = 0f
+                        isDragging = false
+                    }
+                )
+            }
+            .graphicsLayer {
+                translationY = animatedDragOffset
+                scaleX = if (isDragging) 1.05f else 1f
+                scaleY = if (isDragging) 1.05f else 1f
+                alpha = if (isDragging) 0.8f else 1f
+                shadowElevation = if (isDragging) 20f else 0f
+            }
             .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
     ) {

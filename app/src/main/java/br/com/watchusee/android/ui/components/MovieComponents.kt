@@ -6,7 +6,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Info
@@ -149,11 +151,7 @@ fun MoviePosterCard(
     onWatchedClick: (() -> Unit)? = null,
     onDeleteClick: (() -> Unit)? = null,
     onSwipeLeft: (() -> Unit)? = null,
-    onSwipeRight: (() -> Unit)? = null,
-    swipeLeftIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
-    swipeRightIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
-    swipeLeftColor: Color? = null,
-    swipeRightColor: Color? = null
+    onSwipeRight: (() -> Unit)? = null
 ) {
     val haptic = LocalHapticFeedback.current
     val animatedVisibility = remember { MutableTransitionState(false) }
@@ -215,54 +213,50 @@ fun MoviePosterCard(
                 modifier = modifier
                     .fillMaxWidth()
             ) {
-                val dismissState = rememberSwipeToDismissBoxState(
-                    confirmValueChange = { value ->
-                        when (value) {
-                            SwipeToDismissBoxValue.StartToEnd -> {
-                                onSwipeRight?.invoke()
-                                false
-                            }
-                            SwipeToDismissBoxValue.EndToStart -> {
-                                onSwipeLeft?.invoke()
-                                false
-                            }
-                            else -> false
-                        }
-                    }
+                // Drag and Drop States
+                var dragOffsetY by remember { mutableFloatStateOf(0f) }
+                var isDragging by remember { mutableStateOf(false) }
+                val animatedDragOffset by animateFloatAsState(
+                    targetValue = dragOffsetY,
+                    animationSpec = spring(stiffness = Spring.StiffnessLow),
+                    label = "drag_offset"
                 )
 
-                SwipeToDismissBox(
-                    state = dismissState,
-                    enableDismissFromStartToEnd = onSwipeRight != null,
-                    enableDismissFromEndToStart = onSwipeLeft != null,
-                    backgroundContent = {
-                        val color = when (dismissState.dismissDirection) {
-                            SwipeToDismissBoxValue.StartToEnd -> swipeRightColor ?: Color.Transparent
-                            SwipeToDismissBoxValue.EndToStart -> swipeLeftColor ?: Color.Transparent
-                            else -> Color.Transparent
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pointerInput(Unit) {
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = {
+                                    isDragging = true
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                },
+                                onDrag = { change, dragAmount ->
+                                    change.consume()
+                                    dragOffsetY += dragAmount.y
+                                },
+                                onDragEnd = {
+                                    if (dragOffsetY < -150f) {
+                                        onSwipeRight?.invoke()
+                                    } else if (dragOffsetY > 150f) {
+                                        onSwipeLeft?.invoke()
+                                    }
+                                    dragOffsetY = 0f
+                                    isDragging = false
+                                },
+                                onDragCancel = {
+                                    dragOffsetY = 0f
+                                    isDragging = false
+                                }
+                            )
                         }
-                        
-                        if (color != Color.Transparent) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(color.copy(alpha = 0.15f))
-                                    .border(1.dp, color.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
-                                contentAlignment = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd)
-                                    Alignment.CenterStart else Alignment.CenterEnd
-                            ) {
-                                val icon = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd)
-                                    swipeRightIcon ?: Icons.Default.Check else swipeLeftIcon ?: Icons.Default.Delete
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = null,
-                                    tint = color,
-                                    modifier = Modifier.padding(horizontal = 16.dp)
-                                )
-                            }
+                        .graphicsLayer {
+                            translationY = animatedDragOffset
+                            scaleX = if (isDragging) 1.05f else 1f
+                            scaleY = if (isDragging) 1.05f else 1f
+                            alpha = if (isDragging) 0.8f else 1f
+                            shadowElevation = if (isDragging) 20f else 0f
                         }
-                    }
                 ) {
                     Box(
                         modifier = Modifier

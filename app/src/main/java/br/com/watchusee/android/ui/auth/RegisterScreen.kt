@@ -5,7 +5,9 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -18,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -45,6 +48,11 @@ fun RegisterScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+    val isSmallScreen = screenHeight < 700.dp
+    val scrollState = rememberScrollState()
 
     val infiniteTransition = rememberInfiniteTransition(label = "glow")
     val glowAlpha by infiniteTransition.animateFloat(
@@ -141,229 +149,239 @@ fun RegisterScreen(
                     )
             )
 
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 28.dp)
-                    .padding(top = 20.dp, bottom = 40.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .imePadding()
             ) {
                 Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .padding(horizontal = 28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .shadow(
-                                elevation = 30.dp,
-                                shape = RoundedCornerShape(40.dp),
-                                ambientColor = PremiumGold.copy(alpha = 0.2f),
-                                spotColor = PremiumGold.copy(alpha = 0.15f)
-                            )
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color(0xFF1E2433),
-                                        Color(0xFF0D1117)
-                                    )
-                                ),
-                                shape = RoundedCornerShape(40.dp)
-                            )
-                            .border(
-                                width = 1.5.dp,
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        PremiumGold.copy(alpha = 0.4f),
-                                        PremiumGold.copy(alpha = 0.1f)
-                                    )
-                                ),
-                                shape = RoundedCornerShape(40.dp)
-                            ),
-                        contentAlignment = Alignment.Center
+                    Spacer(modifier = Modifier.height(if (isSmallScreen) 16.dp else 20.dp))
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.PersonAdd,
-                            contentDescription = "Criar Conta",
-                            modifier = Modifier.size(36.dp),
-                            tint = PremiumGold
+                        Box(
+                            modifier = Modifier
+                                .size(if (isSmallScreen) 60.dp else 80.dp)
+                                .shadow(
+                                    elevation = 30.dp,
+                                    shape = RoundedCornerShape(40.dp),
+                                    ambientColor = PremiumGold.copy(alpha = 0.2f),
+                                    spotColor = PremiumGold.copy(alpha = 0.15f)
+                                )
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color(0xFF1E2433),
+                                            Color(0xFF0D1117)
+                                        )
+                                    ),
+                                    shape = RoundedCornerShape(40.dp)
+                                )
+                                .border(
+                                    width = 1.5.dp,
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            PremiumGold.copy(alpha = 0.4f),
+                                            PremiumGold.copy(alpha = 0.1f)
+                                        )
+                                    ),
+                                    shape = RoundedCornerShape(40.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.PersonAdd,
+                                contentDescription = "Criar Conta",
+                                modifier = Modifier.size(if (isSmallScreen) 28.dp else 36.dp),
+                                tint = PremiumGold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            "Junte-se ao WatchUsee",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontSize = if (isSmallScreen) 24.sp else 28.sp
+                            ),
+                            fontWeight = FontWeight.Bold,
+                            color = TextWhite
+                        )
+
+                        Text(
+                            "Crie seu perfil e organize sua lista de filmes",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextGrey.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(top = 4.dp, bottom = if (isSmallScreen) 16.dp else 32.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        "Junte-se ao WatchUsee",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = TextWhite
-                    )
-
-                    Text(
-                        "Crie seu perfil e organize sua lista de filmes",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextGrey.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(top = 4.dp, bottom = 32.dp)
-                    )
-                }
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-
-                    GlassTextField(
-                        value = nick,
-                        onValueChange = { nick = it },
-                        label = "Nick (Mín. 3 caracteres)",
-                        leadingIcon = Icons.Outlined.Person,
-                        isError = nick.isNotEmpty() && nick.length < 3,
-                        supportingText = if (nick.isNotEmpty() && nick.length < 3) "Mínimo 3 caracteres" else null
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    GlassTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = "Senha (Mín. 6 caracteres)",
-                        leadingIcon = Icons.Outlined.Lock,
-                        isPassword = true,
-                        passwordVisible = passwordVisible,
-                        onPasswordToggle = { passwordVisible = !passwordVisible },
-                        isError = password.isNotEmpty() && !isPasswordValid,
-                        supportingText = if (password.isNotEmpty() && !isPasswordValid) "Mínimo 6 caracteres" else null
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    GlassTextField(
-                        value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
-                        label = "Confirmar Senha",
-                        leadingIcon = Icons.Outlined.Verified,
-                        isPassword = true,
-                        passwordVisible = confirmPasswordVisible,
-                        onPasswordToggle = { confirmPasswordVisible = !confirmPasswordVisible },
-                        isError = confirmPassword.isNotEmpty() && !doPasswordsMatch,
-                        supportingText = if (confirmPassword.isNotEmpty() && !doPasswordsMatch) {
-                            "As senhas não coincidem"
-                        } else null
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    if (password.isNotEmpty() && isPasswordValid) {
-                        PasswordStrengthIndicator(password = password)
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    AnimatedVisibility(
-                        visible = uiState is AuthUiState.Error,
-                        enter = fadeIn() + slideInVertically(),
-                        exit = fadeOut() + slideOutVertically()
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = CinemaRed.copy(alpha = 0.15f)
-                            )
+
+                        GlassTextField(
+                            value = nick,
+                            onValueChange = { nick = it },
+                            label = "Nick (Mín. 3 caracteres)",
+                            leadingIcon = Icons.Outlined.Person,
+                            isError = nick.isNotEmpty() && nick.length < 3,
+                            supportingText = if (nick.isNotEmpty() && nick.length < 3) "Mínimo 3 caracteres" else null
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        GlassTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = "Senha (Mín. 6 caracteres)",
+                            leadingIcon = Icons.Outlined.Lock,
+                            isPassword = true,
+                            passwordVisible = passwordVisible,
+                            onPasswordToggle = { passwordVisible = !passwordVisible },
+                            isError = password.isNotEmpty() && !isPasswordValid,
+                            supportingText = if (password.isNotEmpty() && !isPasswordValid) "Mínimo 6 caracteres" else null
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        GlassTextField(
+                            value = confirmPassword,
+                            onValueChange = { confirmPassword = it },
+                            label = "Confirmar Senha",
+                            leadingIcon = Icons.Outlined.Verified,
+                            isPassword = true,
+                            passwordVisible = confirmPasswordVisible,
+                            onPasswordToggle = { confirmPasswordVisible = !confirmPasswordVisible },
+                            isError = confirmPassword.isNotEmpty() && !doPasswordsMatch,
+                            supportingText = if (confirmPassword.isNotEmpty() && !doPasswordsMatch) {
+                                "As senhas não coincidem"
+                            } else null
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        if (password.isNotEmpty() && isPasswordValid) {
+                            PasswordStrengthIndicator(password = password)
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        AnimatedVisibility(
+                            visible = uiState is AuthUiState.Error,
+                            enter = fadeIn() + slideInVertically(),
+                            exit = fadeOut() + slideOutVertically()
                         ) {
-                            Text(
-                                text = (uiState as? AuthUiState.Error)?.message ?: "Erro",
-                                color = CinemaRed,
-                                style = MaterialTheme.typography.bodySmall,
+                            Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(12.dp),
-                                textAlign = TextAlign.Center
+                                    .padding(bottom = 16.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = CinemaRed.copy(alpha = 0.15f)
+                                )
+                            ) {
+                                Text(
+                                    text = (uiState as? AuthUiState.Error)?.message ?: "Erro",
+                                    color = CinemaRed,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+
+                        GlowingButton(
+                            onClick = { viewModel.register(nick, password) },
+                            text = "CRIAR CONTA",
+                            isLoading = uiState is AuthUiState.Loading,
+                            enabled = uiState !is AuthUiState.Loading && isFormValid,
+                            glowAlpha = glowAlpha
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = true,
+                                onCheckedChange = { /* TODO: Termos */ },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = PremiumGold,
+                                    uncheckedColor = GraySubtle
+                                ),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                "Li e aceito os ",
+                                color = TextGrey.copy(alpha = 0.6f),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                            TextButton(
+                                onClick = { /* TODO: Termos */ },
+                                modifier = Modifier.padding(horizontal = 0.dp)
+                            ) {
+                                Text(
+                                    "Termos de Uso",
+                                    color = PremiumGold,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Divisor
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            HorizontalDivider(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(1.dp),
+                                color = GraySubtle.copy(alpha = 0.2f)
+                            )
+                            Text(
+                                "  ou  ",
+                                color = TextGrey.copy(alpha = 0.3f),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                            HorizontalDivider(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(1.dp),
+                                color = GraySubtle.copy(alpha = 0.2f)
                             )
                         }
-                    }
 
-                    GlowingButton(
-                        onClick = { viewModel.register(nick, password) },
-                        text = "CRIAR CONTA",
-                        isLoading = uiState is AuthUiState.Loading,
-                        enabled = uiState !is AuthUiState.Loading && isFormValid,
-                        glowAlpha = glowAlpha
-                    )
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = true,
-                            onCheckedChange = { /* TODO: Termos */ },
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = PremiumGold,
-                                uncheckedColor = GraySubtle
-                            ),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            "Li e aceito os ",
-                            color = TextGrey.copy(alpha = 0.6f),
-                            style = MaterialTheme.typography.labelSmall
-                        )
                         TextButton(
-                            onClick = { /* TODO: Termos */ },
-                            modifier = Modifier.padding(horizontal = 0.dp)
+                            onClick = onContinueAsGuest,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 20.dp)
                         ) {
                             Text(
-                                "Termos de Uso",
-                                color = PremiumGold,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Medium
+                                "Continuar como convidado",
+                                color = TextGrey.copy(alpha = 0.4f),
+                                style = MaterialTheme.typography.labelSmall
                             )
                         }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Divisor
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Divider(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(1.dp),
-                            color = GraySubtle.copy(alpha = 0.2f)
-                        )
-                        Text(
-                            "  ou  ",
-                            color = TextGrey.copy(alpha = 0.3f),
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                        Divider(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(1.dp),
-                            color = GraySubtle.copy(alpha = 0.2f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    TextButton(
-                        onClick = onContinueAsGuest,
-                        modifier = Modifier.padding(top = 4.dp)
-                    ) {
-                        Text(
-                            "Continuar como convidado",
-                            color = TextGrey.copy(alpha = 0.4f),
-                            style = MaterialTheme.typography.labelSmall
-                        )
                     }
                 }
             }

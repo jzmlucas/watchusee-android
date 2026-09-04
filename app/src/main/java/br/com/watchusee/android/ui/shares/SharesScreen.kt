@@ -5,7 +5,9 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -25,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontStyle
@@ -237,6 +240,8 @@ private fun ShareListItem(
     onReject: () -> Unit,
     onMovieClick: () -> Unit
 ) {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -282,55 +287,50 @@ private fun ShareListItem(
             }
         }
 
-        val dismissState = rememberSwipeToDismissBoxState(
-            confirmValueChange = { value ->
-                when (value) {
-                    SwipeToDismissBoxValue.StartToEnd -> {
-                        if (isReceived && share.status == ShareStatus.PENDING) onAccept()
-                        false
-                    }
-                    SwipeToDismissBoxValue.EndToStart -> {
-                        onReject()
-                        false
-                    }
-                    else -> false
-                }
-            }
+        // Drag and Drop States
+        var dragOffsetY by remember { mutableFloatStateOf(0f) }
+        var isDragging by remember { mutableStateOf(false) }
+        val animatedDragOffset by animateFloatAsState(
+            targetValue = dragOffsetY,
+            animationSpec = spring(stiffness = Spring.StiffnessLow),
+            label = "drag_offset"
         )
 
-        SwipeToDismissBox(
-            state = dismissState,
-            enableDismissFromStartToEnd = isReceived && share.status == ShareStatus.PENDING,
-            enableDismissFromEndToStart = true,
-            backgroundContent = {
-                val direction = dismissState.dismissDirection
-                val color = when (direction) {
-                    SwipeToDismissBoxValue.StartToEnd -> Color(0xFF2E7D32)
-                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
-                    else -> Color.Transparent
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .pointerInput(Unit) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = {
+                            isDragging = true
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        },
+                        onDrag = { change, dragAmount ->
+                            change.consume()
+                            dragOffsetY += dragAmount.y
+                        },
+                        onDragEnd = {
+                            if (dragOffsetY < -100f) {
+                                if (isReceived && share.status == ShareStatus.PENDING) onAccept()
+                            } else if (dragOffsetY > 100f) {
+                                onReject()
+                            }
+                            dragOffsetY = 0f
+                            isDragging = false
+                        },
+                        onDragCancel = {
+                            dragOffsetY = 0f
+                            isDragging = false
+                        }
+                    )
                 }
-                
-                if (color != Color.Transparent) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(color.copy(alpha = 0.15f))
-                            .border(1.dp, color.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
-                        contentAlignment = if (direction == SwipeToDismissBoxValue.StartToEnd)
-                            Alignment.CenterStart else Alignment.CenterEnd
-                    ) {
-                        val icon = if (direction == SwipeToDismissBoxValue.StartToEnd)
-                            Icons.Default.CheckCircle else Icons.Default.Delete
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = color,
-                            modifier = Modifier.padding(horizontal = 24.dp)
-                        )
-                    }
+                .graphicsLayer {
+                    translationY = animatedDragOffset
+                    scaleX = if (isDragging) 1.03f else 1f
+                    scaleY = if (isDragging) 1.03f else 1f
+                    alpha = if (isDragging) 0.85f else 1f
+                    shadowElevation = if (isDragging) 15f else 0f
                 }
-            }
         ) {
             Box(
                 modifier = Modifier
