@@ -15,21 +15,60 @@ interface MovieApi {
         @Body request: RegisterRequest
     ): UserResponse
 
+    @GET("api/v1/users/{userId}/watchlist")
+    suspend fun getUserWatchlist(
+        @Path("userId") userId: Long,
+        @Query("status") status: String
+    ): WatchlistPagedResponse
+
     @GET("api/v1/movies/search")
     suspend fun searchMovies(
         @Query("query") query: String
     ): List<MovieResponse>
 
+    @GET("api/v1/movies/popular")
+    suspend fun getPopularMovies(
+        @Query("page") page: Int = 1
+    ): PagedResponse<MovieResponse>
+
+    @GET("api/v1/movies/now-playing")
+    suspend fun getNowPlayingMovies(
+        @Query("page") page: Int = 1
+    ): PagedResponse<MovieResponse>
+
+    @GET("api/v1/movies/upcoming")
+    suspend fun getUpcomingMovies(
+        @Query("page") page: Int = 1
+    ): PagedResponse<MovieResponse>
+
     @GET("api/v1/movies/top-rated")
     suspend fun getTopRatedMovies(
         @Query("page") page: Int = 1
-    ): List<MovieResponse>
+    ): PagedResponse<MovieResponse>
 
     @GET("api/v1/movies/{movieId}/similar")
     suspend fun getSimilarMovies(
         @Path("movieId") movieId: Long,
         @Query("page") page: Int = 1
-    ): List<MovieResponse>
+    ): PagedResponse<MovieResponse>
+
+    @GET("api/v1/movies/{movieId}/recommendations")
+    suspend fun getRecommendations(
+        @Path("movieId") movieId: Long,
+        @Query("page") page: Int = 1
+    ): PagedResponse<MovieResponse>
+
+    @GET("api/v1/movies/{movieId}/reviews")
+    suspend fun getMovieReviews(
+        @Path("movieId") movieId: Long,
+        @Query("page") page: Int = 1
+    ): PagedResponse<ReviewResponse>
+
+    @GET("api/v1/movies/{movieId}/lists")
+    suspend fun getMovieLists(
+        @Path("movieId") movieId: Long,
+        @Query("page") page: Int = 1
+    ): PagedResponse<MovieListResponse>
 
     @GET("api/v1/movies/{movieId}")
     suspend fun getMovie(

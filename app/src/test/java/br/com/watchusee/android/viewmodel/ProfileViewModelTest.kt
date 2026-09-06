@@ -1,6 +1,7 @@
 package br.com.watchusee.android.viewmodel
 
 import br.com.watchusee.android.data.dto.UserProfileResponse
+import br.com.watchusee.android.data.repository.MovieRepository
 import br.com.watchusee.android.data.repository.UserRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -18,6 +19,7 @@ class ProfileViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private val userRepository = mock(UserRepository::class.java)
+    private val movieRepository = mock(MovieRepository::class.java)
 
     @Before
     fun setup() {
@@ -40,7 +42,7 @@ class ProfileViewModelTest {
         )
         `when`(userRepository.getProfile()).thenReturn(mockProfile)
 
-        val viewModel = ProfileViewModel(userRepository)
+        val viewModel = ProfileViewModel(userRepository, movieRepository)
 
         assertTrue(viewModel.uiState.value is ProfileUiState.Success)
         assertEquals(mockProfile, (viewModel.uiState.value as ProfileUiState.Success).profile)
@@ -50,7 +52,7 @@ class ProfileViewModelTest {
     fun `loadProfile should update uiState to Error when repository throws exception`() = runTest {
         `when`(userRepository.getProfile()).thenThrow(RuntimeException("Network error"))
 
-        val viewModel = ProfileViewModel(userRepository)
+        val viewModel = ProfileViewModel(userRepository, movieRepository)
 
         assertTrue(viewModel.uiState.value is ProfileUiState.Error)
         assertEquals("Network error", (viewModel.uiState.value as ProfileUiState.Error).message)

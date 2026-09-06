@@ -10,10 +10,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -57,7 +55,7 @@ fun AboutScreen(
                     onClick = onBack,
                     modifier = Modifier.align(Alignment.CenterStart)
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Voltar")
                 }
             }
         },
@@ -80,7 +78,7 @@ fun AboutScreen(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        Icons.Default.Code,
+                        Icons.Rounded.Code,
                         contentDescription = null,
                         modifier = Modifier.size(64.dp),
                         tint = MaterialTheme.colorScheme.primary
@@ -109,7 +107,7 @@ fun AboutScreen(
             SectionTitle("COMO AJUDAR")
 
             AboutItem(
-                icon = Icons.Default.Public,
+                icon = Icons.Rounded.Public,
                 title = "GitHub",
                 description = "Siga meu trabalho e contribua com o código",
                 onClick = {
@@ -119,7 +117,7 @@ fun AboutScreen(
             )
 
             AboutItem(
-                icon = Icons.Default.Favorite,
+                icon = Icons.Rounded.Favorite,
                 title = "Apoie o Projeto",
                 description = "Contribua para manter o aplicativo no ar",
                 onClick = {

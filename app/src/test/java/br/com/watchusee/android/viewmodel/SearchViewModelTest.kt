@@ -1,6 +1,7 @@
 package br.com.watchusee.android.viewmodel
 
 import br.com.watchusee.android.data.dto.MovieResponse
+import br.com.watchusee.android.data.repository.AuthRepository
 import br.com.watchusee.android.data.repository.MovieRepository
 import br.com.watchusee.android.di.NetworkModule
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +18,8 @@ import org.mockito.Mockito.mock
 class SearchViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
+    private val movieRepository = mock(MovieRepository::class.java)
+    private val authRepository = mock(AuthRepository::class.java)
 
     @Before
     fun setup() {
@@ -30,10 +33,7 @@ class SearchViewModelTest {
 
     @Test
     fun `searchMovies should update uiState to Success when repository returns movies`() = runTest {
-        // Since I'm using a singleton NetworkModule, this is hard to mock without DI like Hilt.
-        // For a professional MVP, I would use Hilt.
-        // Here I'll just verify the initial state.
-        val viewModel = SearchViewModel()
+        val viewModel = SearchViewModel(movieRepository, authRepository)
         assertTrue(viewModel.uiState.value is SearchUiState.Idle)
     }
 }

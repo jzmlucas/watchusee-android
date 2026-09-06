@@ -2,8 +2,8 @@ package br.com.watchusee.android.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.rounded.Movie
+import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 fun EmptyState(
     message: String,
     modifier: Modifier = Modifier,
-    icon: ImageVector = Icons.Default.Movie,
+    icon: ImageVector = Icons.Rounded.Movie,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null
 ) {

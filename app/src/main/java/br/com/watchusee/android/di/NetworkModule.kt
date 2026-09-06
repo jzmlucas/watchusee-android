@@ -1,6 +1,7 @@
 package br.com.watchusee.android.di
 
 import br.com.watchusee.android.data.api.MovieApi
+import br.com.watchusee.android.data.api.SocialApi
 import br.com.watchusee.android.data.repository.TokenManager
 import dagger.Module
 import dagger.Provides
@@ -18,7 +19,8 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "https://watchusee-backend.onrender.com/"
+    private const val BASE_URL = "http://10.0.2.2:8080"
+    //private const val BASE_URL = "https://watchusee-backend.onrender.com/"
 
     @Provides
     @Singleton
@@ -115,5 +117,13 @@ object NetworkModule {
     ): MovieApi {
 
         return retrofit.create(MovieApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSocialApi(
+        retrofit: Retrofit
+    ): SocialApi {
+        return retrofit.create(SocialApi::class.java)
     }
 }

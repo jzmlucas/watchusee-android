@@ -1,11 +1,12 @@
 package br.com.watchusee.android.ui.navigation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,24 +35,29 @@ import br.com.watchusee.android.ui.shares.SharesScreen
 import br.com.watchusee.android.ui.watchlist.ToWatchScreen
 import br.com.watchusee.android.ui.watchlist.WatchedScreen
 import br.com.watchusee.android.viewmodel.AuthViewModel
+import br.com.watchusee.android.viewmodel.ProfileViewModel
 import br.com.watchusee.android.viewmodel.WatchlistViewModel
 
 sealed class Screen(
-    val route: String, 
-    val title: String, 
+    val route: String,
+    val title: String,
     val icon: ImageVector,
     val selectedIcon: ImageVector
 ) {
-    data object Login : Screen("login", "Entrar", Icons.Default.Lock, Icons.Default.Lock)
-    data object Register : Screen("register", "Cadastrar", Icons.Default.PersonAdd, Icons.Default.PersonAdd)
-    data object Home : Screen("home", "Início", Icons.Outlined.Home, Icons.Default.Home)
-    data object Search : Screen("search", "Busca", Icons.Outlined.Search, Icons.Default.Search)
-    data object Shares : Screen("shares", "Shares", Icons.Outlined.Share, Icons.Default.Share)
-    data object Library : Screen("library", "Biblioteca", Icons.Outlined.VideoLibrary, Icons.Default.VideoLibrary)
-    data object Profile : Screen("profile", "Perfil", Icons.Outlined.AccountCircle, Icons.Default.AccountCircle)
-    data object About : Screen("about", "Sobre", Icons.Outlined.Info, Icons.Default.Info)
-    data object ToWatch : Screen("to_watch", "Lista", Icons.Outlined.BookmarkBorder, Icons.Default.Bookmark)
-    data object Watched : Screen("watched", "Vistos", Icons.Outlined.Visibility, Icons.Default.Visibility)
+    data object Login : Screen("login", "Entrar", Icons.Rounded.Lock, Icons.Rounded.Lock)
+    data object Register : Screen("register", "Cadastrar", Icons.Rounded.PersonAdd, Icons.Rounded.PersonAdd)
+    data object Home : Screen("home", "Início", Icons.Rounded.Home, Icons.Rounded.Home)
+    data object Search : Screen("search", "Busca", Icons.Rounded.Search, Icons.Rounded.Search)
+    data object Shares : Screen("shares", "Shares", Icons.Rounded.Share, Icons.Rounded.Share)
+    data object Library : Screen("library", "Biblioteca", Icons.Rounded.VideoLibrary, Icons.Rounded.VideoLibrary)
+    data object Profile : Screen("profile", "Perfil", Icons.Rounded.AccountCircle, Icons.Rounded.AccountCircle)
+    data object About : Screen("about", "Sobre", Icons.Rounded.Info, Icons.Rounded.Info)
+    data object ToWatch : Screen("to_watch", "Lista", Icons.Rounded.BookmarkBorder, Icons.Rounded.Bookmark)
+    data object Watched : Screen("watched", "Vistos", Icons.Rounded.Visibility, Icons.Rounded.Visibility)
+    data object Friends : Screen("friends", "Amigos", Icons.Rounded.People, Icons.Rounded.People)
+    data object Settings : Screen("settings", "Configurações", Icons.Rounded.Settings, Icons.Rounded.Settings)
+    data object OtherProfile : Screen("other_profile/{userId}", "Perfil", Icons.Rounded.Person, Icons.Rounded.Person)
+    data object EditProfile : Screen("edit_profile", "Editar Perfil", Icons.Rounded.Edit, Icons.Rounded.Edit)
 }
 
 @Composable
@@ -61,7 +67,7 @@ fun WatchuSeeNavHost(
 ) {
     val watchlistViewModel: WatchlistViewModel = hiltViewModel()
     val authViewModel: AuthViewModel = hiltViewModel()
-    val profileViewModel: br.com.watchusee.android.viewmodel.ProfileViewModel = hiltViewModel()
+    val profileViewModel: ProfileViewModel = hiltViewModel()
 
     val onRequireLogin: (() -> Unit) -> Unit = { action ->
         authViewModel.setPendingAction(action)
@@ -260,12 +266,55 @@ fun WatchuSeeNavHost(
                 authViewModel = authViewModel,
                 onAboutClick = {
                     navController.navigate(Screen.About.route)
+                },
+                onFriendsClick = {
+                    navController.navigate(Screen.Friends.route)
+                },
+                onSettingsClick = {
+                    navController.navigate(Screen.Settings.route)
+                },
+                onEditProfileClick = {
+                    navController.navigate(Screen.EditProfile.route)
+                },
+                onOtherProfileClick = { userId ->
+                    navController.navigate("other_profile/$userId")
                 }
             )
         }
         composable(Screen.About.route) {
             br.com.watchusee.android.ui.profile.AboutScreen(
                 onBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.EditProfile.route) {
+            br.com.watchusee.android.ui.profile.EditProfileScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.Friends.route) {
+            br.com.watchusee.android.ui.social.FriendsScreen(
+                onBack = { navController.popBackStack() },
+                onMovieClick = { movieId ->
+                    navController.navigate("detail/$movieId")
+                }
+            )
+        }
+        composable(Screen.Settings.route) {
+            br.com.watchusee.android.ui.profile.SettingsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = Screen.OtherProfile.route,
+            arguments = listOf(navArgument("userId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
+            br.com.watchusee.android.ui.social.OtherUserProfileScreen(
+                userId = userId,
+                onBack = { navController.popBackStack() },
+                onMovieClick = { movieId ->
+                    navController.navigate("detail/$movieId")
+                }
             )
         }
         composable(
@@ -289,48 +338,95 @@ fun WatchuSeeBottomBar(
     shareViewModel: br.com.watchusee.android.viewmodel.ShareViewModel = hiltViewModel()
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val currentDestination = navBackStackEntry?.destination
+
     val pendingCount by shareViewModel.pendingCount.collectAsStateWithLifecycle()
 
-    if (currentRoute == Screen.Login.route || currentRoute == Screen.Register.route) return
+    val currentRoute = currentDestination?.route
 
-    val items = listOf(Screen.Home, Screen.Search, Screen.Library, Screen.Shares, Screen.Profile)
-    
+    if (
+        currentRoute == Screen.Login.route ||
+        currentRoute == Screen.Register.route
+    ) {
+        return
+    }
+
+    val items = listOf(
+        Screen.Home,
+        Screen.Search,
+        Screen.Library,
+        Screen.Shares,
+        Screen.Profile
+    )
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(start = 12.dp, end = 12.dp, bottom = 16.dp)
+            .padding(
+                horizontal = 12.dp,
+                vertical = 12.dp
+            )
     ) {
         Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
-            tonalElevation = 8.dp,
-            shadowElevation = 12.dp,
-            border = androidx.compose.foundation.BorderStroke(
-                0.5.dp, 
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
+            shape = RoundedCornerShape(26.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+            tonalElevation = 4.dp,
+            shadowElevation = 8.dp,
+            border = BorderStroke(
+                width = 0.5.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
             )
         ) {
             NavigationBar(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
                 containerColor = Color.Transparent,
                 tonalElevation = 0.dp,
-                windowInsets = WindowInsets(0, 0, 0, 0),
-                modifier = Modifier.height(80.dp)
+                windowInsets = WindowInsets(0, 0, 0, 0)
             ) {
-                val currentDestination = navBackStackEntry?.destination
                 items.forEach { screen ->
-                    val selected = currentDestination?.hierarchy?.any { dest ->
-                        dest.route?.startsWith(screen.route) == true
-                    } == true
+
+                    val selected = currentDestination
+                        ?.hierarchy
+                        ?.any { destination ->
+                            destination.route == screen.route ||
+                                    destination.route?.startsWith("${screen.route}?") == true
+                        } == true
+
                     NavigationBarItem(
+                        selected = selected,
+                        onClick = {
+                            navController.navigate(screen.route) {
+                                popUpTo(
+                                    navController.graph.findStartDestination().id
+                                ) {
+                                    saveState = true
+                                }
+
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
                         icon = {
-                             BadgedBox(
+                            BadgedBox(
                                 badge = {
-                                    if (screen == Screen.Shares && pendingCount > 0) {
+                                    if (
+                                        screen == Screen.Shares &&
+                                        pendingCount > 0
+                                    ) {
                                         Badge {
-                                            Text(pendingCount.toString())
+                                            Text(
+                                                text = if (pendingCount > 99) {
+                                                    "99+"
+                                                } else {
+                                                    pendingCount.toString()
+                                                }
+                                            )
                                         }
                                     }
                                 }
@@ -340,35 +436,36 @@ fun WatchuSeeBottomBar(
                                         .size(44.dp)
                                         .clip(CircleShape)
                                         .background(
-                                            if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                                            else Color.Transparent
+                                            if (selected) {
+                                                MaterialTheme.colorScheme.primary.copy(
+                                                    alpha = 0.14f
+                                                )
+                                            } else {
+                                                Color.Transparent
+                                            }
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        if (selected) screen.selectedIcon else screen.icon,
+                                        imageVector = if (selected) {
+                                            screen.selectedIcon
+                                        } else {
+                                            screen.icon
+                                        },
                                         contentDescription = screen.title,
-                                        modifier = Modifier.size(28.dp)
+                                        modifier = Modifier.size(25.dp)
                                     )
                                 }
                             }
                         },
-                        selected = selected,
                         alwaysShowLabel = false,
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = Color.Transparent,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        ),
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                alpha = 0.70f
+                            ),
+                            indicatorColor = Color.Transparent
+                        )
                     )
                 }
             }

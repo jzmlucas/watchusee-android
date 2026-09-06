@@ -18,6 +18,9 @@ sealed interface HomeUiState {
     data class Success(
         val movie: MovieResponse,
         val highlights: List<MovieResponse>,
+        val popularMovies: List<MovieResponse> = emptyList(),
+        val nowPlayingMovies: List<MovieResponse> = emptyList(),
+        val upcomingMovies: List<MovieResponse> = emptyList(),
         val status: WatchlistStatusResponse
     ) : HomeUiState
     data class Error(val message: String) : HomeUiState
@@ -55,7 +58,25 @@ class HomeViewModel @Inject constructor(
             try {
                 val movie = repository.getRandomTrendingMovie()
                 val highlights = try {
-                    repository.getTopRatedMovies(page = currentHighlightsPage).filter { it.id != movie.id }
+                    repository.getTopRatedMovies(page = currentHighlightsPage).results.filter { it.id != movie.id }
+                } catch (e: Exception) {
+                    emptyList()
+                }
+
+                val popular = try {
+                    repository.getPopularMovies(1).results
+                } catch (e: Exception) {
+                    emptyList()
+                }
+
+                val nowPlaying = try {
+                    repository.getNowPlayingMovies(1).results
+                } catch (e: Exception) {
+                    emptyList()
+                }
+
+                val upcoming = try {
+                    repository.getUpcomingMovies(1).results
                 } catch (e: Exception) {
                     emptyList()
                 }
@@ -69,10 +90,17 @@ class HomeViewModel @Inject constructor(
                 } else {
                     WatchlistStatusResponse(movie.id, false, false)
                 }
-                _uiState.value = HomeUiState.Success(movie, highlights, status)
+                _uiState.value = HomeUiState.Success(
+                    movie = movie,
+                    highlights = highlights,
+                    popularMovies = popular,
+                    nowPlayingMovies = nowPlaying,
+                    upcomingMovies = upcoming,
+                    status = status
+                )
             } catch (e: Exception) {
                 try {
-                    val fallbackMovies = repository.getTopRatedMovies(page = 1)
+                    val fallbackMovies = repository.getTopRatedMovies(page = 1).results
                     if (fallbackMovies.isNotEmpty()) {
                         val movie = fallbackMovies.random()
                         val highlights = fallbackMovies.filter { it.id != movie.id }
@@ -85,7 +113,11 @@ class HomeViewModel @Inject constructor(
                         } else {
                             WatchlistStatusResponse(movie.id, false, false)
                         }
-                        _uiState.value = HomeUiState.Success(movie, highlights, status)
+                        _uiState.value = HomeUiState.Success(
+                            movie = movie,
+                            highlights = highlights,
+                            status = status
+                        )
                     } else {
                         _uiState.value = HomeUiState.Empty
                     }
@@ -106,7 +138,7 @@ class HomeViewModel @Inject constructor(
             isLoadingMore = true
             try {
                 currentHighlightsPage++
-                val newMovies = repository.getTopRatedMovies(page = currentHighlightsPage)
+                val newMovies = repository.getTopRatedMovies(page = currentHighlightsPage).results
                 val filteredMovies = newMovies.filter { it.id != currentState.movie.id }
                 
                 if (filteredMovies.isNotEmpty()) {
@@ -114,7 +146,7 @@ class HomeViewModel @Inject constructor(
                     _uiState.value = currentState.copy(highlights = updatedHighlights)
                 }
             } catch (e: Exception) {
-                currentHighlightsPage-- // Revert page on failure
+                currentHighlightsPage--
             } finally {
                 isLoadingMore = false
             }
