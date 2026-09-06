@@ -1,41 +1,42 @@
 package br.com.watchusee.android.ui.auth
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.rounded.Email
+import androidx.compose.material.icons.rounded.Facebook
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.*
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.watchusee.android.ui.theme.*
 import br.com.watchusee.android.viewmodel.AuthUiState
 import br.com.watchusee.android.viewmodel.AuthViewModel
-import br.com.watchusee.android.ui.theme.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
@@ -44,24 +45,36 @@ fun LoginScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var nick by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
 
-    val configuration = LocalConfiguration.current
-    val screenHeight = configuration.screenHeightDp.dp
-    val isSmallScreen = screenHeight < 700.dp
+    var nick by remember {
+        mutableStateOf("")
+    }
+
+    var password by remember {
+        mutableStateOf("")
+    }
+
+    var passwordVisible by remember {
+        mutableStateOf(false)
+    }
+
     val scrollState = rememberScrollState()
 
-    val infiniteTransition = rememberInfiniteTransition(label = "glow")
+    val infiniteTransition = rememberInfiniteTransition(
+        label = "login_glow"
+    )
+
     val glowAlpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
         targetValue = 0.8f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
+            animation = tween(
+                durationMillis = 1500,
+                easing = FastOutSlowInEasing
+            ),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "glow"
+        label = "login_glow_alpha"
     )
 
     LaunchedEffect(Unit) {
@@ -74,478 +87,236 @@ fun LoginScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        Color(0xFF1A1F2E),
-                        Color(0xFF0A0E14),
-                        Color(0xFF05080C)
-                    ),
-                    radius = 1500f,
-                    center = Offset(0f, 0f)
-                )
-            )
-    ) {
-        Box(
-            modifier = Modifier
-                .size(400.dp)
-                .offset(x = (-100).dp, y = (-100).dp)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            PremiumGold.copy(alpha = 0.08f),
-                            Color.Transparent
-                        ),
-                        radius = 400f
-                    )
-                )
-        )
+    AuthBackground {
 
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(scrollState)
                 .imePadding()
+                .padding(
+                    horizontal = 20.dp,
+                    vertical = 32.dp
+                ),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 28.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Spacer(modifier = Modifier.height(if (isSmallScreen) 40.dp else 80.dp))
 
-                // Header
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(if (isSmallScreen) 80.dp else 120.dp)
-                            .shadow(
-                                elevation = 40.dp,
-                                shape = RoundedCornerShape(60.dp),
-                                ambientColor = PremiumGold.copy(alpha = 0.3f),
-                                spotColor = PremiumGold.copy(alpha = 0.2f)
-                            )
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color(0xFF1E2433),
-                                        Color(0xFF0D1117)
-                                    )
-                                ),
-                                shape = RoundedCornerShape(60.dp)
-                            )
-                            .border(
-                                width = 2.dp,
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        PremiumGold.copy(alpha = 0.6f),
-                                        PremiumGold.copy(alpha = 0.2f)
-                                    )
-                                ),
-                                shape = RoundedCornerShape(60.dp)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.LocalMovies,
-                            contentDescription = "Logo",
-                            modifier = Modifier.size(if (isSmallScreen) 40.dp else 56.dp),
-                            tint = PremiumGold
-                        )
+            AuthContent {
+
+                Spacer(
+                    modifier = Modifier.height(48.dp)
+                )
+
+                AuthBrandHeader(
+                    title = "Bem-vindo de volta",
+                    subtitle = "Sua agenda de cinema na palma da mão"
+                )
+
+                Spacer(
+                    modifier = Modifier.height(42.dp)
+                )
+
+                // LOGIN
+                GlassTextField(
+                    value = nick,
+                    onValueChange = {
+                        nick = it
+                    },
+                    label = "Login",
+                    leadingIcon = Icons.Rounded.Person
+                )
+
+                Spacer(
+                    modifier = Modifier.height(16.dp)
+                )
+
+                // SENHA
+                GlassTextField(
+                    value = password,
+                    onValueChange = {
+                        password = it
+                    },
+                    label = "Senha",
+                    leadingIcon = Icons.Rounded.Lock,
+                    isPassword = true,
+                    passwordVisible = passwordVisible,
+                    onPasswordToggle = {
+                        passwordVisible = !passwordVisible
                     }
+                )
 
-                    Spacer(modifier = Modifier.height(if (isSmallScreen) 16.dp else 24.dp))
-
+                // ESQUECEU SENHA
+                TextButton(
+                    onClick = {},
+                    modifier = Modifier.align(Alignment.End)
+                ) {
                     Text(
-                        "WATCHUSEE",
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontSize = if (isSmallScreen) 32.sp else 42.sp,
-                            letterSpacing = if (isSmallScreen) 8.sp else 12.sp
-                        ),
-                        fontWeight = FontWeight.Black,
-                        color = PremiumGold
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        "Sua agenda de cinema na palma da mão",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextGrey.copy(alpha = 0.7f),
-                        textAlign = TextAlign.Center
+                        text = "Esqueceu a senha?",
+                        color = TextGrey.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.labelSmall
                     )
                 }
 
-                Spacer(modifier = Modifier.height(if (isSmallScreen) 32.dp else 60.dp))
+                Spacer(
+                    modifier = Modifier.height(12.dp)
+                )
 
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                // ERRO
+                AnimatedVisibility(
+                    visible = uiState is AuthUiState.Error,
+                    enter = fadeIn() + slideInVertically(),
+                    exit = fadeOut() + slideOutVertically()
                 ) {
-                    GlassTextField(
-                        value = nick,
-                        onValueChange = { nick = it },
-                        label = "Login",
-                        leadingIcon = Icons.Rounded.Person
-                    )
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    GlassTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = "Senha",
-                        leadingIcon = Icons.Rounded.Lock,
-                        isPassword = true,
-                        passwordVisible = passwordVisible,
-                        onPasswordToggle = { passwordVisible = !passwordVisible }
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    TextButton(
-                        onClick = { /* TODO */ },
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text(
-                            "Esqueceu a senha?",
-                            color = TextGrey.copy(alpha = 0.6f),
-                            style = MaterialTheme.typography.labelSmall
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = CinemaRed.copy(
+                                alpha = 0.15f
+                            )
                         )
-                    }
-
-                    Spacer(modifier = Modifier.height(if (isSmallScreen) 16.dp else 24.dp))
-
-                    AnimatedVisibility(
-                        visible = uiState is AuthUiState.Error,
-                        enter = fadeIn() + slideInVertically(),
-                        exit = fadeOut() + slideOutVertically()
                     ) {
-                        Card(
+
+                        Text(
+                            text = (uiState as? AuthUiState.Error)
+                                ?.message
+                                ?: "Erro",
+                            color = CinemaRed,
+                            style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 16.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = CinemaRed.copy(alpha = 0.15f)
-                            )
-                        ) {
-                            Text(
-                                text = (uiState as? AuthUiState.Error)?.message ?: "Erro",
-                                color = CinemaRed,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-
-                    GlowingButton(
-                        onClick = { viewModel.login(nick, password) },
-                        text = "ENTRAR",
-                        isLoading = uiState is AuthUiState.Loading,
-                        enabled = uiState !is AuthUiState.Loading,
-                        glowAlpha = glowAlpha
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        HorizontalDivider(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(1.dp),
-                            color = GraySubtle.copy(alpha = 0.3f)
-                        )
-                        Text(
-                            "  ou continue com  ",
-                            color = TextGrey.copy(alpha = 0.4f),
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                        HorizontalDivider(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(1.dp),
-                            color = GraySubtle.copy(alpha = 0.3f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        SocialButton(
-                            icon = Icons.Rounded.Email,
-                            onClick = { /* TODO: Login com Google */ },
-                            modifier = Modifier.weight(1f)
-                        )
-                        SocialButton(
-                            icon = Icons.Rounded.Phone,
-                            onClick = { /* TODO: Login com Apple */ },
-                            modifier = Modifier.weight(1f)
-                        )
-                        SocialButton(
-                            icon = Icons.Rounded.Facebook,
-                            onClick = { /* TODO: Login com Facebook */ },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(if (isSmallScreen) 16.dp else 24.dp))
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "Ainda não tem conta?",
-                            color = TextGrey.copy(alpha = 0.6f),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        TextButton(
-                            onClick = onNavigateToRegister,
-                            modifier = Modifier.padding(start = 4.dp)
-                        ) {
-                            Text(
-                                "Crie agora",
-                                color = PremiumGold,
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-
-                    TextButton(
-                        onClick = onContinueAsGuest,
-                        modifier = Modifier.padding(top = 4.dp)
-                    ) {
-                        Text(
-                            "Continuar como convidado",
-                            color = TextGrey.copy(alpha = 0.4f),
-                            style = MaterialTheme.typography.labelSmall
+                                .padding(12.dp),
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                // ENTRAR
+                GlowingButton(
+                    onClick = {
+                        viewModel.login(
+                            nick,
+                            password
+                        )
+                    },
+                    text = "ENTRAR",
+                    isLoading = uiState is AuthUiState.Loading,
+                    enabled = uiState !is AuthUiState.Loading,
+                    glowAlpha = glowAlpha
+                )
+
+                Spacer(
+                    modifier = Modifier.height(28.dp)
+                )
+
+                // DIVISOR
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = GraySubtle.copy(alpha = 0.2f)
+                    )
+
+                    Text(
+                        text = "  ou continue com  ",
+                        color = TextGrey.copy(alpha = 0.4f),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = GraySubtle.copy(alpha = 0.2f)
+                    )
+                }
+
+                Spacer(
+                    modifier = Modifier.height(16.dp)
+                )
+
+                // LOGIN SOCIAL
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+
+                    SocialButton(
+                        icon = Icons.Rounded.Email,
+                        onClick = {},
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    SocialButton(
+                        icon = Icons.Rounded.Phone,
+                        onClick = {},
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    SocialButton(
+                        icon = Icons.Rounded.Facebook,
+                        onClick = {},
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(
+                    modifier = Modifier.height(28.dp)
+                )
+
+                // REGISTRO
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+
+                    Text(
+                        text = "Ainda não tem conta?",
+                        color = TextGrey.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    TextButton(
+                        onClick = onNavigateToRegister
+                    ) {
+
+                        Text(
+                            text = "Crie agora",
+                            color = PremiumGold,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+
+                // CONVIDADO
+                TextButton(
+                    onClick = onContinueAsGuest
+                ) {
+
+                    Text(
+                        text = "Continuar como convidado",
+                        color = TextGrey.copy(alpha = 0.4f),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+
+                Spacer(
+                    modifier = Modifier.height(20.dp)
+                )
 
                 Text(
-                    "v1.0.0 • Feito com ❤️ por Lucas Joly",
+                    text = "v1.0.0 • Feito com ❤️ por Lucas Joly",
                     color = TextGrey.copy(alpha = 0.2f),
                     style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier.padding(bottom = 20.dp)
                 )
             }
         }
-    }
-}
-
-@Composable
-fun GlassTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    leadingIcon: ImageVector,
-    isPassword: Boolean = false,
-    passwordVisible: Boolean = false,
-    onPasswordToggle: () -> Unit = {},
-    isError: Boolean = false,
-    supportingText: String? = null
-) {
-    var isFocused by remember { mutableStateOf(false) }
-
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label, color = TextGrey) },
-        leadingIcon = {
-            Icon(
-                imageVector = leadingIcon,
-                contentDescription = null,
-                tint = if (isFocused) PremiumGold else TextGrey.copy(alpha = 0.5f)
-            )
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .onFocusChanged { focusState ->
-                isFocused = focusState.isFocused
-            }
-            .shadow(
-                elevation = if (isFocused) 20.dp else 8.dp,
-                shape = RoundedCornerShape(16.dp),
-                ambientColor = if (isFocused) PremiumGold.copy(alpha = 0.15f) else Color.Transparent,
-                spotColor = if (isFocused) PremiumGold.copy(alpha = 0.1f) else Color.Transparent
-            )
-            .background(
-                Color(0xFF1A1F2E).copy(alpha = 0.7f),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .border(
-                width = if (isFocused) 1.5.dp else 1.dp,
-                brush = if (isFocused) {
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            PremiumGold.copy(alpha = 0.6f),
-                            PremiumGold.copy(alpha = 0.2f),
-                            PremiumGold.copy(alpha = 0.6f)
-                        )
-                    )
-                } else Brush.horizontalGradient(
-                    colors = listOf(
-                        GraySubtle.copy(alpha = 0.3f),
-                        GraySubtle.copy(alpha = 0.1f)
-                    )
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ),
-        shape = RoundedCornerShape(16.dp),
-        singleLine = true,
-        textStyle = MaterialTheme.typography.bodyLarge.copy(
-            color = TextWhite,
-            fontWeight = FontWeight.Medium
-        ),
-        visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
-        keyboardOptions = if (isPassword) KeyboardOptions(keyboardType = KeyboardType.Password) else KeyboardOptions.Default,
-        trailingIcon = if (isPassword) {
-            {
-                IconButton(onClick = onPasswordToggle) {
-                    Icon(
-                        imageVector = if (passwordVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
-                        contentDescription = null,
-                        tint = TextGrey.copy(alpha = 0.5f)
-                    )
-                }
-            }
-        } else null,
-        isError = isError,
-        supportingText = if (supportingText != null) {
-            { Text(supportingText, color = if (isError) CinemaRed else TextGrey) }
-        } else null,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Color.Transparent,
-            unfocusedBorderColor = Color.Transparent,
-            cursorColor = PremiumGold,
-            focusedLabelColor = PremiumGold,
-            unfocusedLabelColor = TextGrey,
-            focusedLeadingIconColor = PremiumGold,
-            unfocusedLeadingIconColor = TextGrey.copy(alpha = 0.5f),
-            focusedContainerColor = Color.Transparent,
-            unfocusedContainerColor = Color.Transparent,
-            focusedTextColor = TextWhite,
-            unfocusedTextColor = TextWhite
-        )
-    )
-}
-
-@Composable
-fun GlowingButton(
-    onClick: () -> Unit,
-    text: String,
-    isLoading: Boolean = false,
-    enabled: Boolean = true,
-    glowAlpha: Float
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(60.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .offset(y = (-4).dp)
-                .blur(20.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            PremiumGold.copy(alpha = 0.0f),
-                            PremiumGold.copy(alpha = glowAlpha * 0.4f),
-                            PremiumGold.copy(alpha = 0.0f)
-                        )
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                )
-        )
-
-        Button(
-            onClick = onClick,
-            modifier = Modifier
-                .fillMaxSize()
-                .shadow(
-                    elevation = 12.dp,
-                    shape = RoundedCornerShape(16.dp),
-                    ambientColor = PremiumGold.copy(alpha = 0.2f),
-                    spotColor = PremiumGold.copy(alpha = 0.15f)
-                ),
-            shape = RoundedCornerShape(16.dp),
-            enabled = enabled,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = PremiumGold,
-                contentColor = Color.Black,
-                disabledContainerColor = GraySubtle,
-                disabledContentColor = TextGrey
-            )
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = Color.Black,
-                    strokeWidth = 2.5.dp
-                )
-            } else {
-                Text(
-                    text,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 3.sp,
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun SocialButton(
-    icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier
-            .height(48.dp)
-            .background(
-                Color(0xFF1A1F2E).copy(alpha = 0.5f),
-                shape = RoundedCornerShape(12.dp)
-            ),
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Color.Transparent,
-            contentColor = TextWhite
-        ),
-        border = BorderStroke(
-            width = 1.dp,
-            color = GraySubtle.copy(alpha = 0.3f)
-        )
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = TextGrey
-        )
     }
 }

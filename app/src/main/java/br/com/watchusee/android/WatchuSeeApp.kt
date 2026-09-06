@@ -7,7 +7,6 @@ import coil3.SingletonImageLoader
 import coil3.svg.SvgDecoder
 import dagger.hilt.android.HiltAndroidApp
 
-
 @HiltAndroidApp
 class WatchuSeeApp : Application(), SingletonImageLoader.Factory {
     override fun newImageLoader(context: PlatformContext): ImageLoader {

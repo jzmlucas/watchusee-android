@@ -55,6 +55,7 @@ fun EditProfileScreen(
     var movieQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
+        viewModel.loadProfile()
         viewModel.loadAvatarIcons()
     }
 
@@ -69,7 +70,7 @@ fun EditProfileScreen(
     }
 
     LaunchedEffect(movieQuery) {
-        if (movieQuery.length >= 2) {
+        if (movieQuery.length >= 3) {
             viewModel.searchMoviesForFavorite(movieQuery)
         }
     }
@@ -150,20 +151,42 @@ fun EditProfileScreen(
 
             val currentFavorite = (uiState as? ProfileUiState.Success)?.profile?.favoriteMovie
 
-            if (currentFavorite != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                CurrentFavoriteCard(
-                    movie = currentFavorite,
-                    onRemove = { viewModel.removeFavoriteMovie() }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            } else {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "Nenhum filme favorito selecionado",
-                    color = TextGrey,
-                    style = MaterialTheme.typography.bodySmall
-                )
+            when (uiState) {
+                is ProfileUiState.Loading -> {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(SurfaceGrey.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = PremiumGold,
+                            strokeWidth = 2.dp
+                        )
+                    }
+                }
+                is ProfileUiState.Success -> {
+                    if (currentFavorite != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        CurrentFavoriteCard(
+                            movie = currentFavorite,
+                            onRemove = { viewModel.removeFavoriteMovie() }
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    } else {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Nenhum filme favorito selecionado",
+                            color = TextGrey,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                else -> {}
             }
 
             Spacer(modifier = Modifier.height(16.dp))
