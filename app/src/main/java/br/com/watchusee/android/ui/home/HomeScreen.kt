@@ -2,11 +2,7 @@ package br.com.watchusee.android.ui.home
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -14,10 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.automirrored.filled.Login
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -43,8 +36,8 @@ import br.com.watchusee.android.data.dto.MovieResponse
 import br.com.watchusee.android.ui.components.EmptyState
 import br.com.watchusee.android.ui.components.ErrorState
 import br.com.watchusee.android.ui.components.HomeSkeleton
-import br.com.watchusee.android.ui.components.LoadingState
 import br.com.watchusee.android.ui.components.MovieReelsActions
+import br.com.watchusee.android.ui.animations.scaleOnClick
 import br.com.watchusee.android.util.TmdbImageUrl
 import br.com.watchusee.android.viewmodel.AuthViewModel
 import br.com.watchusee.android.viewmodel.HomeUiState
@@ -65,6 +58,10 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+
+    fun requireAuth(action: () -> Unit): () -> Unit = {
+        if (authViewModel.isAuthenticated()) action() else onRequireLogin(action)
+    }
 
     Column(
         modifier = Modifier
@@ -125,24 +122,15 @@ fun HomeScreen(
                         FeaturedMovieLayout(
                             movie = state.movie,
                             highlights = state.highlights,
+                            popularMovies = state.popularMovies,
+                            nowPlayingMovies = state.nowPlayingMovies,
+                            upcomingMovies = state.upcomingMovies,
                             isToWatch = state.status.toWatch,
                             isWatched = state.status.watched,
                             onMovieClick = onMovieClick,
                             onDetailsClick = { onMovieClick(state.movie.id) },
-                            onAddClick = {
-                                if (authViewModel.isAuthenticated()) {
-                                    viewModel.toggleToWatchlist(state.movie.id)
-                                } else {
-                                    onRequireLogin { viewModel.toggleToWatchlist(state.movie.id) }
-                                }
-                            },
-                            onWatchedClick = {
-                                if (authViewModel.isAuthenticated()) {
-                                    viewModel.toggleWatched(state.movie.id)
-                                } else {
-                                    onRequireLogin { viewModel.toggleWatched(state.movie.id) }
-                                }
-                            },
+                            onAddClick = requireAuth { viewModel.toggleToWatchlist(state.movie.id) },
+                            onWatchedClick = requireAuth { viewModel.toggleWatched(state.movie.id) },
                             onLoadMoreHighlights = { viewModel.loadMoreHighlights() }
                         )
                     }
@@ -156,6 +144,9 @@ fun HomeScreen(
 private fun FeaturedMovieLayout(
     movie: MovieResponse,
     highlights: List<MovieResponse>,
+    popularMovies: List<MovieResponse> = emptyList(),
+    nowPlayingMovies: List<MovieResponse> = emptyList(),
+    upcomingMovies: List<MovieResponse> = emptyList(),
     isToWatch: Boolean,
     isWatched: Boolean,
     onMovieClick: (Long) -> Unit,
@@ -190,7 +181,7 @@ private fun FeaturedMovieLayout(
         ) {
             AsyncImage(
                 model = TmdbImageUrl.getBackdropUrl(movie.backdropPath) ?: TmdbImageUrl.getPosterUrl(movie.posterPath, "original"),
-                contentDescription = null,
+                contentDescription = movie.title,
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer(
@@ -220,7 +211,7 @@ private fun FeaturedMovieLayout(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(24.dp)
-                    .padding(end = 64.dp) // Leave space for reels actions
+                    .padding(end = 64.dp) // Deixa espaço para as ações estilo "reels"
             ) {
                 Text(
                     text = movie.title,
@@ -239,14 +230,14 @@ private fun FeaturedMovieLayout(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Default.Star,
+                            Icons.Rounded.Star,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = String.format("%.1f", movie.rating ?: 0.0),
+                            text = movie.rating?.let { String.format("%.1f", it) } ?: "N/A",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -303,6 +294,32 @@ private fun FeaturedMovieLayout(
             )
         }
 
+        if (popularMovies.isNotEmpty()) {
+            MovieSection(
+                title = "POPULARES",
+                movies = popularMovies,
+                onMovieClick = onMovieClick
+            )
+        }
+
+        if (nowPlayingMovies.isNotEmpty()) {
+            MovieSection(
+                title = "EM CARTAZ",
+                movies = nowPlayingMovies,
+                onMovieClick = onMovieClick
+            )
+        }
+
+        /*if (upcomingMovies.isNotEmpty()) {
+            MovieSection(
+                title = "EM BREVE",
+                movies = upcomingMovies,
+                onMovieClick = onMovieClick
+            )
+        }
+
+         */
+
         Spacer(modifier = Modifier.height(120.dp))
     }
 }
@@ -340,7 +357,9 @@ private fun HighlightsCarousel(
     LaunchedEffect(highlights.size) {
         while (true) {
             delay(5.seconds)
-            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+            if (!pagerState.isScrollInProgress) {
+                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+            }
         }
     }
 
@@ -395,12 +414,12 @@ private fun HighlightCard(
             .fillMaxWidth()
             .height(180.dp)
             .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .scaleOnClick(onClick = onClick)
     ) {
         Box {
             AsyncImage(
                 model = TmdbImageUrl.getBackdropUrl(movie.backdropPath) ?: TmdbImageUrl.getPosterUrl(movie.posterPath, "w780"),
-                contentDescription = null,
+                contentDescription = movie.title,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
@@ -426,6 +445,78 @@ private fun HighlightCard(
                 color = Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun MovieSection(
+    title: String,
+    movies: List<MovieResponse>,
+    onMovieClick: (Long) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 1.5.sp,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+            modifier = Modifier.padding(horizontal = 24.dp)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        androidx.compose.foundation.lazy.LazyRow(
+            contentPadding = PaddingValues(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(movies.size) { index ->
+                val movie = movies[index]
+                MovieCard(
+                    movie = movie,
+                    onClick = { onMovieClick(movie.id) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MovieCard(
+    movie: MovieResponse,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .width(120.dp)
+            .height(180.dp)
+            .scaleOnClick(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Box {
+            AsyncImage(
+                model = TmdbImageUrl.getPosterUrl(movie.posterPath, "w342"),
+                contentDescription = movie.title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f)),
+                            startY = 0.6f
+                        )
+                    )
             )
         }
     }

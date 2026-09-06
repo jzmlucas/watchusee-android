@@ -9,17 +9,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -63,7 +59,7 @@ fun MovieReelsActions(
     ) {
         onDeleteClick?.let {
             ReelsIconButton(
-                icon = Icons.Outlined.Delete,
+                icon = Icons.Rounded.Delete,
                 contentDescription = "Remover",
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -76,7 +72,7 @@ fun MovieReelsActions(
 
         onDetailsClick?.let {
             ReelsIconButton(
-                icon = Icons.Outlined.Info,
+                icon = Icons.Rounded.Info,
                 contentDescription = "Detalhes",
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -89,7 +85,7 @@ fun MovieReelsActions(
 
         onWatchedClick?.let {
             ReelsIconButton(
-                icon = if (isWatched) Icons.Default.Visibility else Icons.Outlined.Visibility,
+                icon = Icons.Rounded.Visibility,
                 contentDescription = "Visto",
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -102,7 +98,7 @@ fun MovieReelsActions(
 
         onToWatchClick?.let {
             ReelsIconButton(
-                icon = if (isToWatch) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
+                icon = if (isToWatch) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
                 contentDescription = "Lista",
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -156,7 +152,6 @@ fun MoviePosterCard(
     val haptic = LocalHapticFeedback.current
     val animatedVisibility = remember { MutableTransitionState(false) }
 
-    // Feedback Animation State
     var feedbackIcon by remember { mutableStateOf<androidx.compose.ui.graphics.vector.ImageVector?>(null) }
     var feedbackColor by remember { mutableStateOf(Color.White) }
     val feedbackAlpha = remember { Animatable(0f) }
@@ -176,9 +171,9 @@ fun MoviePosterCard(
         if (animatedVisibility.currentState) {
             val isRemoved = (prevToWatch && !isToWatch) || (prevWatched && !isWatched)
             val icon = when {
-                isWatched && !prevWatched -> Icons.Default.Visibility
-                isToWatch && !prevToWatch -> Icons.Default.Bookmark
-                isRemoved -> Icons.Default.Delete
+                isWatched && !prevWatched -> Icons.Rounded.Visibility
+                isToWatch && !prevToWatch -> Icons.Rounded.Bookmark
+                isRemoved -> Icons.Rounded.Delete
                 else -> null
             }
 
@@ -242,11 +237,17 @@ fun MoviePosterCard(
                                         onSwipeLeft?.invoke()
                                     }
                                     dragOffsetY = 0f
-                                    isDragging = false
+                                    scope.launch {
+                                        kotlinx.coroutines.delay(100)
+                                        isDragging = false
+                                    }
                                 },
                                 onDragCancel = {
                                     dragOffsetY = 0f
-                                    isDragging = false
+                                    scope.launch {
+                                        kotlinx.coroutines.delay(100)
+                                        isDragging = false
+                                    }
                                 }
                             )
                         }
@@ -264,6 +265,7 @@ fun MoviePosterCard(
                             .clip(RoundedCornerShape(16.dp))
                             .scaleOnClick(
                                 targetScale = 0.95f,
+                                enabled = !isDragging,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     onClick()
@@ -323,7 +325,7 @@ fun MoviePosterCard(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Star,
+                                    imageVector = Icons.Rounded.Star,
                                     contentDescription = null,
                                     tint = primaryColor,
                                     modifier = Modifier.size(12.dp)
@@ -429,7 +431,7 @@ fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
-            imageVector = Icons.Default.Movie,
+            imageVector = Icons.Rounded.Movie,
             contentDescription = null,
             modifier = Modifier.size(80.dp),
             tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
@@ -456,7 +458,7 @@ fun ErrorState(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
-            imageVector = Icons.Default.ErrorOutline,
+            imageVector = Icons.Rounded.ErrorOutline,
             contentDescription = null,
             modifier = Modifier.size(80.dp),
             tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)

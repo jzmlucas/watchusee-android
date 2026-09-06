@@ -101,6 +101,7 @@ dependencies {
     // Coil
     implementation("io.coil-kt.coil3:coil-compose:3.0.4")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
+    implementation("io.coil-kt.coil3:coil-svg:3.0.4")
 
     // YouTube Player
     implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:13.0.0")

@@ -22,6 +22,9 @@ sealed interface DetailUiState {
         val status: WatchlistStatusResponse,
         val trailer: br.com.watchusee.android.data.dto.MovieTrailerResponse? = null,
         val relatedMovies: List<MovieResponse> = emptyList(),
+        val recommendations: List<MovieResponse> = emptyList(),
+        val reviews: List<br.com.watchusee.android.data.dto.ReviewResponse> = emptyList(),
+        val movieLists: List<br.com.watchusee.android.data.dto.MovieListResponse> = emptyList(),
         val isLoadingMoreSimilar: Boolean = false,
         val hasMoreSimilarMovies: Boolean = true
     ) : DetailUiState
@@ -84,16 +87,31 @@ class DetailViewModel @Inject constructor(
 
                 val relatedMovies =
                     try {
-
                         repository.getSimilarMovies(
                             movieId = movieId,
                             page = 1
-                        )
-
+                        ).results
                     } catch (exception: Exception) {
-
                         emptyList()
                     }
+
+                val recommendations = try {
+                    repository.getRecommendations(movieId, 1).results
+                } catch (e: Exception) {
+                    emptyList()
+                }
+
+                val reviews = try {
+                    repository.getMovieReviews(movieId, 1).results
+                } catch (e: Exception) {
+                    emptyList()
+                }
+
+                val movieLists = try {
+                    repository.getMovieLists(movieId, 1).results
+                } catch (e: Exception) {
+                    emptyList()
+                }
 
                 val trailer = try {
                     repository.getMovieTrailer(movieId)
@@ -102,11 +120,8 @@ class DetailViewModel @Inject constructor(
                 }
 
                 if (relatedMovies.isEmpty()) {
-
                     hasMoreSimilarMovies = false
-
                 } else {
-
                     similarPage = 1
                     hasMoreSimilarMovies = true
                 }
@@ -117,6 +132,9 @@ class DetailViewModel @Inject constructor(
                         status = status,
                         trailer = trailer,
                         relatedMovies = relatedMovies,
+                        recommendations = recommendations,
+                        reviews = reviews,
+                        movieLists = movieLists,
                         isLoadingMoreSimilar = false,
                         hasMoreSimilarMovies = hasMoreSimilarMovies
                     )
@@ -171,7 +189,7 @@ class DetailViewModel @Inject constructor(
                     repository.getSimilarMovies(
                         movieId = movieId,
                         page = nextPage
-                    )
+                    ).results
 
                 if (newMovies.isEmpty()) {
 

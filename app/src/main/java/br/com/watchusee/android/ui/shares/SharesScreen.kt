@@ -13,11 +13,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.automirrored.filled.Login
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -206,7 +204,7 @@ fun ShareList(
             if (state.shares.isEmpty()) {
                 EmptyState(
                     message = if (isReceived) "Nenhum compartilhamento recebido." else "Você ainda não compartilhou filmes.",
-                    icon = if (isReceived) Icons.Default.MailOutline else Icons.AutoMirrored.Filled.Send
+                    icon = if (isReceived) Icons.Rounded.MailOutline else Icons.AutoMirrored.Rounded.Send
                 )
             } else {
                 LazyColumn(
@@ -260,7 +258,7 @@ private fun ShareListItem(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = if (isReceived) Icons.Default.Person else Icons.AutoMirrored.Filled.Send,
+                            imageVector = if (isReceived) Icons.Rounded.Person else Icons.AutoMirrored.Rounded.Send,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
@@ -368,7 +366,7 @@ private fun ShareListItem(
                     verticalAlignment = Alignment.Bottom
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Movie,
+                        imageVector = Icons.Rounded.Movie,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
@@ -384,7 +382,7 @@ private fun ShareListItem(
                         overflow = TextOverflow.Ellipsis
                     )
                     Icon(
-                        Icons.AutoMirrored.Filled.ArrowForward,
+                        Icons.AutoMirrored.Rounded.ArrowForward,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)

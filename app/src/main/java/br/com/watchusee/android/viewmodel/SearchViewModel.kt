@@ -54,11 +54,20 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 trendingMovies = repository.getTrendingMovies()
-                if (_uiState.value is SearchUiState.Idle) {
-                    _uiState.value = SearchUiState.Idle(trendingMovies)
+                if (trendingMovies.isEmpty()) {
+                    trendingMovies = repository.getTopRatedMovies(1).results
                 }
             } catch (e: Exception) {
                 android.util.Log.e("SearchViewModel", "Erro ao buscar tendências: ${e.message}", e)
+                try {
+                    trendingMovies = repository.getTopRatedMovies(1).results
+                } catch (inner: Exception) {
+                    // Silently fail
+                }
+            } finally {
+                if (_uiState.value is SearchUiState.Idle) {
+                    _uiState.value = SearchUiState.Idle(trendingMovies)
+                }
             }
         }
     }
@@ -83,7 +92,6 @@ class SearchViewModel @Inject constructor(
             if (movies.isEmpty()) {
                 _uiState.value = SearchUiState.Empty
             } else {
-                // Fetch statuses in parallel
                 coroutineScope {
                     val statusMap = movies.map { movie ->
                         async {

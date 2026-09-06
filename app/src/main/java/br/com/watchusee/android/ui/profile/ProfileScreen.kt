@@ -1,5 +1,7 @@
 package br.com.watchusee.android.ui.profile
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,19 +12,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -35,12 +38,14 @@ import br.com.watchusee.android.data.dto.MovieResponse
 import br.com.watchusee.android.data.dto.UserProfileResponse
 import br.com.watchusee.android.ui.components.ErrorState
 import br.com.watchusee.android.ui.components.ProfileSkeleton
+import br.com.watchusee.android.ui.animations.scaleOnClick
 import br.com.watchusee.android.ui.theme.*
 import br.com.watchusee.android.util.TmdbImageUrl
 import br.com.watchusee.android.viewmodel.AuthViewModel
 import br.com.watchusee.android.viewmodel.ProfileUiState
 import br.com.watchusee.android.viewmodel.ProfileViewModel
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.delay
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -54,7 +59,12 @@ fun ProfileScreen(
     onRequireLogin: () -> Unit,
     onMovieClick: (Long) -> Unit = {},
     onAboutClick: () -> Unit = {},
+    onFriendsClick: () -> Unit = {},
+    onSettingsClick: () -> Unit = {},
+    onOtherProfileClick: (Long) -> Unit = {},
+    onEditProfileClick: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
+    socialViewModel: br.com.watchusee.android.viewmodel.SocialViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -114,11 +124,17 @@ fun ProfileScreen(
                     ProfileContent(
                         profile = state.profile,
                         recentlyWatched = state.recentlyWatched,
+                        friendCount = state.friendCount,
                         onWatchedClick = onWatchedClick,
                         onToWatchClick = onToWatchClick,
+                        onFriendsClick = onFriendsClick,
+                        onSettingsClick = onSettingsClick,
+                        onOtherProfileClick = onOtherProfileClick,
+                        onEditProfileClick = onEditProfileClick,
                         onLogoutClick = { showLogoutDialog = true },
                         onMovieClick = onMovieClick,
-                        onAboutClick = onAboutClick
+                        onAboutClick = onAboutClick,
+                        socialViewModel = socialViewModel
                     )
                 }
             }
@@ -173,501 +189,790 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun ProfileContent(
-    profile: UserProfileResponse,
-    recentlyWatched: List<MovieResponse>,
-    onWatchedClick: () -> Unit,
-    onToWatchClick: () -> Unit,
-    onLogoutClick: () -> Unit,
-    onMovieClick: (Long) -> Unit,
-    onAboutClick: () -> Unit
-) {
-    val scrollState = rememberScrollState()
-    val lastMovie = recentlyWatched.firstOrNull()
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(DarkNavy)
-    ) {
-        if (lastMovie != null) {
-            AsyncImage(
-                model = TmdbImageUrl.getBackdropUrl(lastMovie.backdropPath) ?: TmdbImageUrl.getPosterUrl(lastMovie.posterPath, "w780"),
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(280.dp)
-                    .blur(25.dp),
-                contentScale = ContentScale.Crop
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(280.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                DarkNavy
-                            )
-                        )
-                    )
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .shadow(
-                        elevation = 20.dp,
-                        shape = CircleShape,
-                        ambientColor = PremiumGold.copy(alpha = 0.15f),
-                        spotColor = PremiumGold.copy(alpha = 0.1f)
-                    )
-                    .background(
-                        Color(0xFF1E2433),
-                        shape = CircleShape
-                    )
-                    .border(
-                        width = 2.dp,
-                        color = PremiumGold.copy(alpha = 0.3f),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = profile.nick.firstOrNull()?.toString()?.uppercase() ?: "",
-                    style = MaterialTheme.typography.headlineLarge.copy(
-                        fontSize = 40.sp,
-                        fontWeight = FontWeight.Black
-                    ),
-                    color = PremiumGold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = profile.nick,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontSize = 24.sp
-                ),
-                fontWeight = FontWeight.Bold,
-                color = TextWhite
-            )
-
-            val formattedDate = remember(profile.createdAt) {
-                try {
-                    val zonedDateTime = ZonedDateTime.parse(profile.createdAt)
-                    val formatter = DateTimeFormatter.ofPattern("'Membro desde' yyyy", Locale("pt", "BR"))
-                    zonedDateTime.format(formatter)
-                } catch (e: Exception) {
-                    "Membro do WatchUsee"
-                }
-            }
-
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = PremiumGold.copy(alpha = 0.08f),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    PremiumGold.copy(alpha = 0.15f)
-                ),
-                modifier = Modifier.padding(top = 4.dp)
-            ) {
-                Text(
-                    text = "⭐ $formattedDate",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PremiumGold.copy(alpha = 0.8f),
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp),
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                StatCard(
-                    label = "Assistidos",
-                    value = profile.watchedMovies.toString(),
-                    icon = Icons.Filled.Visibility,
-                    onClick = onWatchedClick,
-                    modifier = Modifier.weight(1f),
-                    accentColor = PremiumGold
-                )
-                StatCard(
-                    label = "Assistir",
-                    value = profile.toWatchMovies.toString(),
-                    icon = Icons.Filled.Bookmark,
-                    onClick = onToWatchClick,
-                    modifier = Modifier.weight(1f),
-                    accentColor = AccentBlue
-                )
-            }
-
-            if (lastMovie != null) {
-                Spacer(modifier = Modifier.height(28.dp))
-
-                SectionTitle("ÚLTIMO FILME ASSISTIDO")
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp)
-                        .clickable { onMovieClick(lastMovie.id) },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = SurfaceGrey.copy(alpha = 0.5f)
-                    ),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        GraySubtle.copy(alpha = 0.2f)
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        AsyncImage(
-                            model = TmdbImageUrl.getPosterUrl(lastMovie.posterPath, "w342"),
-                            contentDescription = lastMovie.title,
-                            modifier = Modifier
-                                .width(68.dp)
-                                .fillMaxHeight(),
-                            contentScale = ContentScale.Crop
-                        )
-
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(12.dp),
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = lastMovie.title,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = TextWhite,
-                                maxLines = 2
-                            )
-                            if (!lastMovie.releaseDate.isNullOrEmpty()) {
-                                Text(
-                                    text = lastMovie.releaseDate.take(4),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = TextGrey
-                                )
-                            }
-                        }
-
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 8.dp),
-                            tint = TextGrey.copy(alpha = 0.3f)
-                        )
-                    }
-                }
-            }
-
-            if (recentlyWatched.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(28.dp))
-
-                SectionTitle("VISTOS RECENTEMENTE")
-
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(horizontal = 4.dp)
-                ) {
-                    items(recentlyWatched.size) { index ->
-                        val movie = recentlyWatched[index]
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Card(
-                                modifier = Modifier
-                                    .width(90.dp)
-                                    .height(135.dp)
-                                    .clickable { onMovieClick(movie.id) }
-                                    .shadow(
-                                        elevation = 4.dp,
-                                        shape = RoundedCornerShape(10.dp)
-                                    ),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = SurfaceGrey
-                                )
-                            ) {
-                                AsyncImage(
-                                    model = TmdbImageUrl.getPosterUrl(movie.posterPath, "w342"),
-                                    contentDescription = movie.title,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                            Text(
-                                text = movie.title,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = TextGrey,
-                                maxLines = 1,
-                                modifier = Modifier.width(90.dp),
-                                textAlign = TextAlign.Center,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            SectionTitle("MINHA ATIVIDADE")
-
-            ActivityItem(
-                icon = Icons.Filled.Movie,
-                title = "Filmes Assistidos",
-                description = "${profile.watchedMovies} filmes marcados como assistidos",
-                onClick = onWatchedClick
-            )
-
-            ActivityItem(
-                icon = Icons.Filled.BookmarkBorder,
-                title = "Minha Lista",
-                description = "${profile.toWatchMovies} filmes para assistir",
-                onClick = onToWatchClick
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            SectionTitle("CONFIGURAÇÕES")
-
-            ActivityItem(
-                icon = Icons.Outlined.PersonOutline,
-                title = "Editar Perfil",
-                description = "Personalize suas informações",
-                onClick = { /* TODO */ }
-            )
-
-            ActivityItem(
-                icon = Icons.Outlined.Security,
-                title = "Segurança",
-                description = "Senha e segurança da conta",
-                onClick = { /* TODO */ }
-            )
-
-            ActivityItem(
-                icon = Icons.Outlined.Info,
-                title = "Sobre o App",
-                description = "Conheça o desenvolvedor e apoie o projeto",
-                onClick = onAboutClick
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            LogoutButton(onClick = onLogoutClick)
-
-            Spacer(modifier = Modifier.height(80.dp))
-        }
-    }
-}
-
-@Composable
-private fun StatCard(
-    label: String,
-    value: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
+private fun AnimatedNumber(
+    targetValue: Int,
     modifier: Modifier = Modifier,
-    accentColor: Color
+    style: androidx.compose.ui.text.TextStyle,
+    color: Color,
+    fontWeight: FontWeight = FontWeight.Black
 ) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier
-            .height(96.dp)
-            .shadow(
-                elevation = 4.dp,
-                shape = RoundedCornerShape(16.dp)
-            ),
-        shape = RoundedCornerShape(16.dp),
-        color = SurfaceGrey.copy(alpha = 0.5f),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            GraySubtle.copy(alpha = 0.2f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                tint = accentColor
-            )
+    var startValue by remember { mutableIntStateOf(0) }
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontSize = 24.sp
-                ),
-                fontWeight = FontWeight.Black,
-                color = accentColor
-            )
-
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = TextGrey,
-                fontWeight = FontWeight.Medium
-            )
-        }
+    LaunchedEffect(targetValue) {
+        delay(300)
+        startValue = targetValue
     }
-}
 
-@Composable
-private fun SectionTitle(title: String) {
+    val animatedValue by animateIntAsState(
+        targetValue = startValue,
+        animationSpec = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+        label = "number_animation"
+    )
     Text(
-        text = title,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        style = MaterialTheme.typography.labelLarge,
-        fontWeight = FontWeight.Bold,
-        letterSpacing = 1.5.sp,
-        color = TextGrey.copy(alpha = 0.6f)
+        text = animatedValue.toString(),
+        style = style,
+        fontWeight = fontWeight,
+        color = color,
+        modifier = modifier
     )
 }
 
 @Composable
-private fun ActivityItem(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    onClick: () -> Unit
+private fun ProfileContent(
+    profile: UserProfileResponse,
+    recentlyWatched: List<MovieResponse>,
+    friendCount: Int,
+    onWatchedClick: () -> Unit,
+    onToWatchClick: () -> Unit,
+    onFriendsClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onOtherProfileClick: (Long) -> Unit,
+    onEditProfileClick: () -> Unit,
+    onLogoutClick: () -> Unit,
+    onMovieClick: (Long) -> Unit,
+    onAboutClick: () -> Unit,
+    socialViewModel: br.com.watchusee.android.viewmodel.SocialViewModel
 ) {
-    Card(
+    val scrollState = rememberScrollState()
+    val lastMovie = recentlyWatched.firstOrNull()
+
+    Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .shadow(
-                elevation = 2.dp,
-                shape = RoundedCornerShape(10.dp)
-            ),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = SurfaceGrey.copy(alpha = 0.3f)
-        ),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            GraySubtle.copy(alpha = 0.1f)
-        )
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .background(DarkNavy)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
+
+        Box(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape = RoundedCornerShape(10.dp),
-                color = PremiumGold.copy(alpha = 0.08f)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        icon,
-                        contentDescription = null,
-                        tint = PremiumGold
-                    )
-                }
+
+            val bannerMovie = profile.favoriteMovie ?: lastMovie
+
+            bannerMovie?.let { movie ->
+
+                AsyncImage(
+                    model = TmdbImageUrl.getBackdropUrl(
+                        movie.backdropPath
+                    ) ?: TmdbImageUrl.getPosterUrl(
+                        movie.posterPath,
+                        "w780"
+                    ),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(270.dp)
+                        .blur(24.dp),
+                    contentScale = ContentScale.Crop,
+                    alpha = 0.42f
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(270.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    DarkNavy.copy(alpha = 0.25f),
+                                    DarkNavy.copy(alpha = 0.65f),
+                                    DarkNavy
+                                )
+                            )
+                        )
+                )
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = 20.dp,
+                        top = 30.dp,
+                        end = 20.dp,
+                        bottom = 20.dp
+                    )
+            ) {
 
-            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    // Avatar
+                    Box(
+                        modifier = Modifier
+                            .size(88.dp)
+                            .shadow(
+                                elevation = 8.dp,
+                                shape = CircleShape
+                            )
+                            .background(
+                                SurfaceGrey,
+                                CircleShape
+                            )
+                            .border(
+                                width = 1.5.dp,
+                                color = PremiumGold.copy(alpha = 0.85f),
+                                shape = CircleShape
+                            )
+                            .padding(4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Color(0xFF1E2433),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+
+                            if (profile.avatarIcon != null) {
+
+                                AsyncImage(
+                                    model = br.com.watchusee.android.util.AvatarMapper
+                                        .getIconUrl(profile.avatarIcon),
+                                    contentDescription = "Avatar de ${profile.nick}",
+                                    modifier = Modifier.fillMaxSize(0.68f),
+                                    contentScale = ContentScale.Fit
+                                )
+
+                            } else {
+
+                                Text(
+                                    text = profile.nick
+                                        .firstOrNull()
+                                        ?.toString()
+                                        ?.uppercase()
+                                        ?: "",
+                                    style = MaterialTheme.typography.headlineLarge.copy(
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 32.sp
+                                    ),
+                                    color = PremiumGold
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(22.dp))
+
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        ProfileStat(
+                            label = "Assistidos",
+                            value = profile.watchedMovies,
+                            onClick = onWatchedClick
+                        )
+
+                        ProfileStat(
+                            label = "Lista",
+                            value = profile.toWatchMovies,
+                            onClick = onToWatchClick
+                        )
+
+                        ProfileStat(
+                            label = "Amigos",
+                            value = friendCount,
+                            onClick = onFriendsClick
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
+                    text = profile.nick,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black,
                     color = TextWhite
                 )
+
+                val formattedDate = remember(profile.createdAt) {
+                    try {
+                        val zonedDateTime =
+                            ZonedDateTime.parse(profile.createdAt)
+
+                        val formatter =
+                            DateTimeFormatter.ofPattern(
+                                "'Membro desde' MMMM 'de' yyyy",
+                                Locale("pt", "BR")
+                            )
+
+                        zonedDateTime.format(formatter)
+
+                    } catch (e: Exception) {
+                        "Cinéfilo WatchUsee"
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(3.dp))
+
                 Text(
-                    text = description,
+                    text = formattedDate,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextGrey
+                    color = TextGrey.copy(alpha = 0.65f)
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+
+                    ProfileActionButton(
+                        text = "Editar perfil",
+                        onClick = onEditProfileClick,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    ProfileActionButton(
+                        text = "Sobre o app",
+                        onClick = onAboutClick,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                UserSearchBar(
+                    viewModel = socialViewModel,
+                    onUserClick = onOtherProfileClick
                 )
             }
+        }
 
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = TextGrey.copy(alpha = 0.3f)
+        HorizontalDivider(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            color = Color.White.copy(alpha = 0.06f)
+        )
+
+        profile.favoriteMovie?.let { movie ->
+
+            FavoriteMovieSection(
+                movie = movie,
+                onClick = {
+                    onMovieClick(movie.id)
+                }
+            )
+        }
+
+        if (recentlyWatched.isNotEmpty()) {
+
+            Column(
+                modifier = Modifier.padding(
+                    top = 4.dp,
+                    bottom = 20.dp
+                )
+            ) {
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 20.dp,
+                            vertical = 10.dp
+                        ),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+
+                        Text(
+                            text = "VISTOS RECENTEMENTE",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = TextGrey.copy(alpha = 0.65f),
+                            letterSpacing = 1.4.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(3.dp))
+
+                    }
+
+                    Text(
+                        text = "Ver todos",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PremiumGold,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                onWatchedClick()
+                            }
+                            .padding(
+                                horizontal = 8.dp,
+                                vertical = 6.dp
+                            )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(
+                        horizontal = 20.dp
+                    )
+                ) {
+
+                    items(recentlyWatched.size) { index ->
+
+                        val movie = recentlyWatched[index]
+
+                        MovieInstaCard(
+                            movie = movie,
+                            onClick = {
+                                onMovieClick(movie.id)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 20.dp,
+                    vertical = 8.dp
+                )
+        ) {
+
+            ActivityRow(
+                icon = Icons.Rounded.Settings,
+                title = "Configurações",
+                onClick = onSettingsClick
+            )
+
+            ActivityRow(
+                icon = Icons.Rounded.Security,
+                title = "Segurança",
+                onClick = {
+                    // TODO
+                }
+            )
+
+            ActivityRow(
+                icon = Icons.AutoMirrored.Rounded.Logout,
+                title = "Sair da conta",
+                color = CinemaRed,
+                onClick = onLogoutClick
+            )
+        }
+
+        Spacer(modifier = Modifier.height(100.dp))
+    }
+}
+
+@Composable
+private fun FavoriteMovieSection(
+    movie: MovieResponse,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 18.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "FILME FAVORITO",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = TextGrey.copy(alpha = 0.65f),
+                    letterSpacing = 1.5.sp
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+            }
+
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(128.dp)
+                .scaleOnClick(onClick = onClick),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = SurfaceGrey
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 4.dp
+            )
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize()
+            ) {
+
+                AsyncImage(
+                    model = TmdbImageUrl.getPosterUrl(
+                        movie.posterPath,
+                        "w342"
+                    ),
+                    contentDescription = movie.title,
+                    modifier = Modifier
+                        .width(86.dp)
+                        .fillMaxHeight()
+                        .clip(
+                            RoundedCornerShape(
+                                topStart = 18.dp,
+                                bottomStart = 18.dp
+                            )
+                        ),
+                    contentScale = ContentScale.Crop
+                )
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(
+                            horizontal = 16.dp,
+                            vertical = 14.dp
+                        ),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = movie.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextWhite,
+                        maxLines = 2,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(5.dp))
+
+                    movie.releaseDate?.takeIf { it.length >= 4 }?.let {
+                        Text(
+                            text = it.take(4),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextGrey
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Ver detalhes",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = PremiumGold,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = PremiumGold,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileStat(
+    label: String,
+    value: Int,
+    onClick: (() -> Unit)? = null
+) {
+    Column(
+        modifier = Modifier
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        AnimatedNumber(
+            targetValue = value,
+            style = MaterialTheme.typography.titleLarge,
+            color = TextWhite,
+            fontWeight = FontWeight.Black
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = TextGrey.copy(alpha = 0.8f),
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+private fun ProfileActionButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.height(36.dp),
+        shape = RoundedCornerShape(8.dp),
+        color = Color.White.copy(alpha = 0.05f),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            Color.White.copy(alpha = 0.1f)
+        )
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = TextWhite
             )
         }
     }
 }
 
 @Composable
-private fun LogoutButton(onClick: () -> Unit) {
+private fun MovieInstaCard(
+    movie: MovieResponse,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .shadow(
-                elevation = 4.dp,
-                shape = RoundedCornerShape(12.dp)
-            ),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = CinemaRed.copy(alpha = 0.08f)
-        ),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            CinemaRed.copy(alpha = 0.2f)
+            .width(112.dp)
+            .height(168.dp)
+            .scaleOnClick(onClick = onClick),
+        shape = RoundedCornerShape(10.dp),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 3.dp
         )
     ) {
-        Row(
+        AsyncImage(
+            model = TmdbImageUrl.getPosterUrl(
+                movie.posterPath,
+                "w342"
+            ),
+            contentDescription = movie.title,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+    }
+}
+
+@Composable
+private fun ActivityRow(
+    icon: ImageVector,
+    title: String,
+    color: Color = TextWhite,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color.copy(alpha = 0.7f),
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+            color = color,
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Icon(
+            Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+            null,
+            tint = TextGrey.copy(alpha = 0.3f),
+            modifier = Modifier.size(18.dp)
+        )
+    }
+}
+
+@Composable
+fun UserSearchBar(
+    viewModel: br.com.watchusee.android.viewmodel.SocialViewModel,
+    onUserClick: (Long) -> Unit
+) {
+    val query by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val results by viewModel.searchResults.collectAsStateWithLifecycle()
+    val actionState by viewModel.actionState.collectAsStateWithLifecycle()
+    var isSearching by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = {
+                viewModel.onQueryChange(it)
+                isSearching = it.length >= 3
+            },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Buscar usuários...", color = TextGrey.copy(alpha = 0.5f)) },
+            leadingIcon = {
+                Icon(
+                    Icons.Rounded.Search,
+                    null,
+                    tint = if (query.isNotEmpty()) PremiumGold else GraySubtle
+                )
+            },
+            trailingIcon = {
+                if (isSearching && results.isEmpty()) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = PremiumGold,
+                        strokeWidth = 2.dp
+                    )
+                } else if (query.isNotEmpty()) {
+                    IconButton(onClick = {
+                        viewModel.onQueryChange("")
+                        isSearching = false
+                    }) {
+                        Icon(Icons.Rounded.Close, null, tint = TextGrey)
+                    }
+                }
+            },
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedBorderColor = GraySubtle.copy(alpha = 0.2f),
+                focusedBorderColor = PremiumGold.copy(alpha = 0.5f),
+                cursorColor = PremiumGold,
+                focusedTextColor = TextWhite,
+                unfocusedTextColor = TextWhite
+            )
+        )
+
+        if (query.length >= 3 && results.isNotEmpty()) {
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = SurfaceGrey.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        results.take(5).forEach { user ->
+                            UserSearchResultItem(
+                                user = user,
+                                onAddClick = { viewModel.sendFriendRequest(user.id) },
+                                onClick = { onUserClick(user.id) },
+                                isLoading = actionState is br.com.watchusee.android.viewmodel.SocialActionState.Loading
+                            )
+                            if (results.last() != user) {
+                                HorizontalDivider(
+                                    color = Color.White.copy(alpha = 0.05f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UserSearchResultItem(
+    user: br.com.watchusee.android.data.dto.FriendResponse,
+    onAddClick: () -> Unit,
+    onClick: () -> Unit,
+    isLoading: Boolean
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 8.dp, horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
+                .size(36.dp)
+                .background(PremiumGold.copy(alpha = 0.1f), CircleShape),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(
-                Icons.AutoMirrored.Filled.Logout,
-                contentDescription = null,
-                tint = CinemaRed,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(10.dp))
             Text(
-                "Sair da conta",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = CinemaRed
+                text = user.nick.take(1).uppercase(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = PremiumGold,
+                fontWeight = FontWeight.Bold
             )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = user.nick,
+                style = MaterialTheme.typography.bodyLarge,
+                color = TextWhite,
+                fontWeight = FontWeight.Medium
+            )
+            if (user.isFriend) {
+                Text(
+                    text = "Amigo",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF2E7D32),
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        if (user.isFriend) {
+            Icon(
+                Icons.Rounded.Check,
+                null,
+                tint = Color(0xFF2E7D32),
+                modifier = Modifier.size(20.dp)
+            )
+        } else {
+            IconButton(
+                onClick = onAddClick,
+                enabled = !isLoading,
+                modifier = Modifier.size(32.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = PremiumGold,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(Icons.Rounded.PersonAdd, null, tint = PremiumGold)
+                }
+            }
         }
     }
 }

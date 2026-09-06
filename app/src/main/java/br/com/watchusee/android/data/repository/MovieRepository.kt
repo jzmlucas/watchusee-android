@@ -15,19 +15,48 @@ class MovieRepository @Inject constructor(
         return movieApi.searchMovies(query)
     }
 
-    suspend fun getTopRatedMovies(page: Int = 1): List<MovieResponse> {
+    suspend fun getPopularMovies(page: Int = 1): PagedResponse<MovieResponse> {
+        return movieApi.getPopularMovies(page)
+    }
+
+    suspend fun getNowPlayingMovies(page: Int = 1): PagedResponse<MovieResponse> {
+        return movieApi.getNowPlayingMovies(page)
+    }
+
+    suspend fun getUpcomingMovies(page: Int = 1): PagedResponse<MovieResponse> {
+        return movieApi.getUpcomingMovies(page)
+    }
+
+    suspend fun getTopRatedMovies(page: Int = 1): PagedResponse<MovieResponse> {
         return movieApi.getTopRatedMovies(page)
     }
 
     suspend fun getSimilarMovies(
         movieId: Long,
         page: Int = 1
-    ): List<MovieResponse> {
+    ): PagedResponse<MovieResponse> {
+        return movieApi.getSimilarMovies(movieId, page)
+    }
 
-        return movieApi.getSimilarMovies(
-            movieId = movieId,
-            page = page
-        )
+    suspend fun getRecommendations(
+        movieId: Long,
+        page: Int = 1
+    ): PagedResponse<MovieResponse> {
+        return movieApi.getRecommendations(movieId, page)
+    }
+
+    suspend fun getMovieReviews(
+        movieId: Long,
+        page: Int = 1
+    ): PagedResponse<ReviewResponse> {
+        return movieApi.getMovieReviews(movieId, page)
+    }
+
+    suspend fun getMovieLists(
+        movieId: Long,
+        page: Int = 1
+    ): PagedResponse<MovieListResponse> {
+        return movieApi.getMovieLists(movieId, page)
     }
 
     suspend fun getMovie(movieId: Long): MovieResponse {
@@ -66,10 +95,6 @@ class MovieRepository @Inject constructor(
         return movieApi.getWatchlist("TO_WATCH").content
     }
 
-    suspend fun getWatchedList(): List<WatchlistItemResponse> {
-        return movieApi.getWatchlist("WATCHED").content
-    }
-
     suspend fun getWatchlistStatus(movieId: Long): WatchlistStatusResponse {
         return try {
             val response = movieApi.getWatchlistItem(movieId)
@@ -83,6 +108,36 @@ class MovieRepository @Inject constructor(
         }
     }
 
+    suspend fun getWatchedList(): List<WatchlistItemResponse> {
+        return movieApi
+            .getWatchlist("WATCHED")
+            .content
+    }
+
+    suspend fun getUserWatchedList(
+        userId: Long
+    ): List<WatchlistItemResponse> {
+
+        return movieApi
+            .getUserWatchlist(
+                userId = userId,
+                status = "WATCHED"
+            )
+            .content
+    }
+
+    suspend fun getUserWatchlist(
+        userId: Long,
+        status: String
+    ): List<WatchlistItemResponse> {
+
+        return movieApi
+            .getUserWatchlist(
+                userId = userId,
+                status = status
+            )
+            .content
+    }
     suspend fun createShare(movieId: Long, recipientNick: String, message: String?): ShareResponse {
         return movieApi.createShare(ShareRequest(movieId, recipientNick, message))
     }

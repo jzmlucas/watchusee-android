@@ -15,9 +15,9 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -43,8 +43,10 @@ import br.com.watchusee.android.data.dto.MovieResponse
 import br.com.watchusee.android.data.dto.WatchlistItemResponse
 import br.com.watchusee.android.ui.components.*
 import br.com.watchusee.android.ui.components.MovieGridSkeleton
+import br.com.watchusee.android.ui.animations.scaleOnClick
 import br.com.watchusee.android.util.TmdbImageUrl
 import br.com.watchusee.android.viewmodel.AuthViewModel
+import br.com.watchusee.android.viewmodel.WatchlistSortOrder
 import br.com.watchusee.android.viewmodel.WatchlistUiState
 import br.com.watchusee.android.viewmodel.WatchlistViewModel
 import coil3.compose.AsyncImage
@@ -63,6 +65,8 @@ fun LibraryScreen(
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(initialTab) }
     val tabs = listOf("Para Assistir", "Assistidos")
+    val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
+    var showSortMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -83,6 +87,52 @@ fun LibraryScreen(
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 2.sp
                     )
+
+                    IconButton(
+                        onClick = { showSortMenu = true },
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.Sort,
+                            contentDescription = "Ordenar",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showSortMenu,
+                        onDismissRequest = { showSortMenu = false },
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                    ) {
+                        WatchlistSortOrder.entries.forEach { order ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = order.displayName,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = if (sortOrder == order) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (sortOrder == order) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                    )
+                                },
+                                onClick = {
+                                    viewModel.setSortOrder(order)
+                                    showSortMenu = false
+                                },
+                                leadingIcon = {
+                                    if (sortOrder == order) {
+                                        Icon(
+                                            Icons.Rounded.Check,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
                 }
 
                 TabRow(
@@ -153,12 +203,17 @@ private fun ToWatchTab(
     val uiState by viewModel.toWatchState.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
     val haptic = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
     val gridState = rememberLazyGridState()
     val scope = rememberCoroutineScope()
     var showEmptyAnimation by remember { mutableStateOf(false) }
+
+    LaunchedEffect(sortOrder) {
+        gridState.animateScrollToItem(0)
+    }
 
     LaunchedEffect(currentUser) {
         if (currentUser != null) {
@@ -207,7 +262,7 @@ private fun ToWatchTab(
                         )
                     }
                 },
-                actionIcon = Icons.Default.Visibility,
+                actionIcon = Icons.Rounded.Visibility,
                 actionLabel = "Assistir",
                 emptyMessage = "Sua lista de desejos está vazia",
                 modifier = Modifier.fillMaxSize(),
@@ -245,11 +300,16 @@ private fun WatchedTab(
     val uiState by viewModel.watchedState.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
     val haptic = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
     val gridState = rememberLazyGridState()
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(sortOrder) {
+        gridState.animateScrollToItem(0)
+    }
 
     LaunchedEffect(currentUser) {
         if (currentUser != null) {
@@ -290,7 +350,7 @@ private fun WatchedTab(
                         )
                     }
                 },
-                actionIcon = Icons.Default.Bookmark,
+                actionIcon = Icons.Rounded.Bookmark,
                 actionLabel = "Lista",
                 emptyMessage = "Você ainda não marcou nenhum filme como assistido",
                 modifier = Modifier.fillMaxSize(),
@@ -401,7 +461,7 @@ fun ToWatchScreen(
                             )
                         }
                     },
-                    actionIcon = Icons.Default.Visibility,
+                    actionIcon = Icons.Rounded.Visibility,
                     actionLabel = "Assistir",
                     emptyMessage = "Sua lista de desejos está vazia",
                     modifier = Modifier.fillMaxSize(),
@@ -499,7 +559,7 @@ fun WatchedScreen(
                             )
                         }
                     },
-                    actionIcon = Icons.Default.Bookmark,
+                    actionIcon = Icons.Rounded.Bookmark,
                     actionLabel = "Lista",
                     emptyMessage = "Você ainda não marcou nenhum filme como assistido",
                     modifier = Modifier.fillMaxSize(),
@@ -550,7 +610,7 @@ fun WatchlistSearchBar(
             },
             leadingIcon = {
                 Icon(
-                    Icons.Default.Search,
+                    Icons.Rounded.Search,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -559,7 +619,7 @@ fun WatchlistSearchBar(
                 if (query.isNotEmpty()) {
                     IconButton(onClick = { onQueryChange("") }) {
                         Icon(
-                            Icons.Default.Close,
+                            Icons.Rounded.Close,
                             contentDescription = "Limpar",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -739,9 +799,9 @@ private fun LargeMovieCard(
     LaunchedEffect(isToWatch, isWatched) {
         val isRemoved = (prevToWatch && !isToWatch) || (prevWatched && !isWatched)
         val icon = when {
-            isWatched -> Icons.Default.Visibility
-            isToWatch -> Icons.Default.Bookmark
-            isRemoved -> Icons.Default.Delete
+            isWatched -> Icons.Rounded.Visibility
+            isToWatch -> Icons.Rounded.Bookmark
+            isRemoved -> Icons.Rounded.Delete
             else -> null
         }
 
@@ -786,11 +846,17 @@ private fun LargeMovieCard(
                             onDeleteClick?.invoke()
                         }
                         dragOffsetY = 0f
-                        isDragging = false
+                        scope.launch {
+                            delay(100)
+                            isDragging = false
+                        }
                     },
                     onDragCancel = {
                         dragOffsetY = 0f
-                        isDragging = false
+                        scope.launch {
+                            delay(100)
+                            isDragging = false
+                        }
                     }
                 )
             }
@@ -802,7 +868,10 @@ private fun LargeMovieCard(
                 shadowElevation = if (isDragging) 20f else 0f
             }
             .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .scaleOnClick(
+                enabled = !isDragging,
+                onClick = onClick
+            )
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             AsyncImage(

@@ -14,6 +14,13 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class WatchlistSortOrder(val displayName: String) {
+    RECENT("Mais Recentes"),
+    RATING("Melhor Avaliados"),
+    TITLE("Título (A-Z)"),
+    YEAR("Lançamento")
+}
+
 sealed interface WatchlistUiState {
     data object Loading : WatchlistUiState
     data class Success(val items: List<WatchlistItemResponse>) : WatchlistUiState
@@ -41,35 +48,56 @@ class WatchlistViewModel @Inject constructor(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    val toWatchState: StateFlow<WatchlistUiState> = combine(_toWatchMovies, _query, _isLoadingToWatch, _toWatchError) { movies, q, loading, error ->
+    private val _sortOrder = MutableStateFlow(WatchlistSortOrder.RECENT)
+    val sortOrder: StateFlow<WatchlistSortOrder> = _sortOrder.asStateFlow()
+
+    val toWatchState: StateFlow<WatchlistUiState> = combine(
+        _toWatchMovies, _query, _isLoadingToWatch, _toWatchError, _sortOrder
+    ) { movies, q, loading, error, sort ->
         when {
             loading && movies.isEmpty() -> WatchlistUiState.Loading
             error != null -> WatchlistUiState.Error(error)
             else -> {
                 val filtered = if (q.isBlank()) movies else movies.filter { it.movie.title.contains(q, ignoreCase = true) }
-                if (filtered.isEmpty()) WatchlistUiState.Empty else WatchlistUiState.Success(filtered)
+                val sorted = applySorting(filtered, sort)
+                if (sorted.isEmpty()) WatchlistUiState.Empty else WatchlistUiState.Success(sorted)
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), WatchlistUiState.Loading)
 
-    val watchedState: StateFlow<WatchlistUiState> = combine(_watchedMovies, _query, _isLoadingWatched, _watchedError) { movies, q, loading, error ->
+    val watchedState: StateFlow<WatchlistUiState> = combine(
+        _watchedMovies, _query, _isLoadingWatched, _watchedError, _sortOrder
+    ) { movies, q, loading, error, sort ->
         when {
             loading && movies.isEmpty() -> WatchlistUiState.Loading
             error != null -> WatchlistUiState.Error(error)
             else -> {
                 val filtered = if (q.isBlank()) movies else movies.filter { it.movie.title.contains(q, ignoreCase = true) }
-                if (filtered.isEmpty()) WatchlistUiState.Empty else WatchlistUiState.Success(filtered)
+                val sorted = applySorting(filtered, sort)
+                if (sorted.isEmpty()) WatchlistUiState.Empty else WatchlistUiState.Success(sorted)
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), WatchlistUiState.Loading)
+
+    private fun applySorting(movies: List<WatchlistItemResponse>, sortOrder: WatchlistSortOrder): List<WatchlistItemResponse> {
+        return when (sortOrder) {
+            WatchlistSortOrder.RECENT -> movies.sortedByDescending { it.createdAt }
+            WatchlistSortOrder.RATING -> movies.sortedByDescending { it.movie.rating ?: 0.0 }
+            WatchlistSortOrder.TITLE -> movies.sortedBy { it.movie.title }
+            WatchlistSortOrder.YEAR -> movies.sortedByDescending { it.movie.releaseDate ?: "" }
+        }
+    }
 
     init {
-        // Carregamento inicial automático
         refresh()
     }
 
     fun onQueryChange(newQuery: String) {
         _query.value = newQuery
+    }
+
+    fun setSortOrder(order: WatchlistSortOrder) {
+        _sortOrder.value = order
     }
 
     fun refresh() {
@@ -84,8 +112,7 @@ class WatchlistViewModel @Inject constructor(
             
             _toWatchError.value = null
             try {
-                // O endpoint GET /watchlist?status=TO_WATCH agora é usado via repository
-                val movies = repository.getToWatchList().reversed()
+                val movies = repository.getToWatchList()
                 _toWatchMovies.value = movies
             } catch (e: Exception) {
                 android.util.Log.e("WatchlistViewModel", "Error loading to watch list", e)
@@ -104,8 +131,7 @@ class WatchlistViewModel @Inject constructor(
 
             _watchedError.value = null
             try {
-                // O endpoint GET /watchlist?status=WATCHED agora é usado via repository
-                val movies = repository.getWatchedList().reversed()
+                val movies = repository.getWatchedList()
                 _watchedMovies.value = movies
             } catch (e: Exception) {
                 android.util.Log.e("WatchlistViewModel", "Error loading watched list", e)
@@ -120,9 +146,8 @@ class WatchlistViewModel @Inject constructor(
     fun addToWatch(movieId: Long) {
         viewModelScope.launch {
             try {
-                // Chamada para PUT /watchlist/{movieId} com { "status": "TO_WATCH" }
                 repository.addToWatch(movieId)
-                refresh() // Atualiza ambas as listas para garantir sincronia
+                refresh()
             } catch (e: Exception) {
                 android.util.Log.e("WatchlistViewModel", "Error adding to watch", e)
             }
@@ -132,7 +157,6 @@ class WatchlistViewModel @Inject constructor(
     fun removeFromToWatch(movieId: Long) {
         viewModelScope.launch {
             try {
-                // Chamada para DELETE /watchlist/{movieId}
                 repository.removeFromToWatch(movieId)
                 loadToWatch(silent = true)
             } catch (e: Exception) {
@@ -144,7 +168,6 @@ class WatchlistViewModel @Inject constructor(
     fun markAsWatched(movieId: Long) {
         viewModelScope.launch {
             try {
-                // Chamada para PUT /watchlist/{movieId} com { "status": "WATCHED" }
                 repository.markAsWatched(movieId)
                 refresh()
             } catch (e: Exception) {
@@ -156,7 +179,6 @@ class WatchlistViewModel @Inject constructor(
     fun removeFromWatched(movieId: Long) {
         viewModelScope.launch {
             try {
-                // Chamada para DELETE /watchlist/{movieId}
                 repository.removeFromWatched(movieId)
                 loadWatched(silent = true)
             } catch (e: Exception) {

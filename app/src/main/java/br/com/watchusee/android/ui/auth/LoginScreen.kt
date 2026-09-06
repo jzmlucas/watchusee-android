@@ -11,8 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -54,7 +53,6 @@ fun LoginScreen(
     val isSmallScreen = screenHeight < 700.dp
     val scrollState = rememberScrollState()
 
-    // Animações
     val infiniteTransition = rememberInfiniteTransition(label = "glow")
     val glowAlpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
@@ -91,7 +89,6 @@ fun LoginScreen(
                 )
             )
     ) {
-        // Efeito de brilho de fundo
         Box(
             modifier = Modifier
                 .size(400.dp)
@@ -125,7 +122,6 @@ fun LoginScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Logo com efeito de brilho
                     Box(
                         modifier = Modifier
                             .size(if (isSmallScreen) 80.dp else 120.dp)
@@ -157,7 +153,7 @@ fun LoginScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.LocalMovies,
+                            imageVector = Icons.Rounded.LocalMovies,
                             contentDescription = "Logo",
                             modifier = Modifier.size(if (isSmallScreen) 40.dp else 56.dp),
                             tint = PremiumGold
@@ -196,7 +192,7 @@ fun LoginScreen(
                         value = nick,
                         onValueChange = { nick = it },
                         label = "Login",
-                        leadingIcon = Icons.Outlined.Person
+                        leadingIcon = Icons.Rounded.Person
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -205,7 +201,7 @@ fun LoginScreen(
                         value = password,
                         onValueChange = { password = it },
                         label = "Senha",
-                        leadingIcon = Icons.Outlined.Lock,
+                        leadingIcon = Icons.Rounded.Lock,
                         isPassword = true,
                         passwordVisible = passwordVisible,
                         onPasswordToggle = { passwordVisible = !passwordVisible }
@@ -293,17 +289,17 @@ fun LoginScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         SocialButton(
-                            icon = Icons.Outlined.Email,
+                            icon = Icons.Rounded.Email,
                             onClick = { /* TODO: Login com Google */ },
                             modifier = Modifier.weight(1f)
                         )
                         SocialButton(
-                            icon = Icons.Outlined.Phone,
+                            icon = Icons.Rounded.Phone,
                             onClick = { /* TODO: Login com Apple */ },
                             modifier = Modifier.weight(1f)
                         )
                         SocialButton(
-                            icon = Icons.Outlined.Facebook,
+                            icon = Icons.Rounded.Facebook,
                             onClick = { /* TODO: Login com Facebook */ },
                             modifier = Modifier.weight(1f)
                         )
@@ -427,7 +423,7 @@ fun GlassTextField(
             {
                 IconButton(onClick = onPasswordToggle) {
                     Icon(
-                        imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                        imageVector = if (passwordVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
                         contentDescription = null,
                         tint = TextGrey.copy(alpha = 0.5f)
                     )

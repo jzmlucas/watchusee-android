@@ -13,9 +13,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -39,6 +39,7 @@ import br.com.watchusee.android.data.dto.MovieResponse
 import br.com.watchusee.android.ui.components.DetailSkeleton
 import br.com.watchusee.android.ui.components.ErrorState
 import br.com.watchusee.android.ui.components.LoadingState
+import br.com.watchusee.android.ui.animations.scaleOnClick
 import br.com.watchusee.android.util.TmdbImageUrl
 import br.com.watchusee.android.viewmodel.DetailUiState
 import br.com.watchusee.android.viewmodel.DetailViewModel
@@ -115,7 +116,7 @@ fun MovieDetailScreen(
                     modifier = Modifier.align(Alignment.CenterStart)
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                         contentDescription = "Voltar",
                         tint = MaterialTheme.colorScheme.onBackground
                     )
@@ -243,9 +244,9 @@ private fun MovieDetailContent(
         val isRemoved = (prevToWatch && !isToWatch) || (prevWatched && !isWatched)
 
         val icon = when {
-            isWatched && !prevWatched -> Icons.Default.Visibility
-            isToWatch && !prevToWatch -> Icons.Default.Bookmark
-            isRemoved -> Icons.Default.Delete
+            isWatched && !prevWatched -> Icons.Rounded.Visibility
+            isToWatch && !prevToWatch -> Icons.Rounded.Bookmark
+            isRemoved -> Icons.Rounded.Delete
             else -> null
         }
 
@@ -354,7 +355,7 @@ private fun MovieDetailContent(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                Icons.Default.Star,
+                                Icons.Rounded.Star,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(18.dp)
@@ -401,7 +402,7 @@ private fun MovieDetailContent(
                 )
             ) {
                 Icon(
-                    if (status.toWatch) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                    if (status.toWatch) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )
@@ -426,7 +427,7 @@ private fun MovieDetailContent(
                 )
             ) {
                 Icon(
-                    if (status.watched) Icons.Default.CheckCircle else Icons.Default.Check,
+                    if (status.watched) Icons.Rounded.CheckCircle else Icons.Rounded.Check,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )
@@ -448,7 +449,7 @@ private fun MovieDetailContent(
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
         ) {
             Icon(
-                Icons.Default.Share,
+                Icons.Rounded.Share,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.primary
@@ -497,13 +498,35 @@ private fun MovieDetailContent(
 
         TrailerSection(trailer = state.trailer)
 
+        if (state.recommendations.isNotEmpty()) {
+            RelatedMoviesSection(
+                title = "VOCÊ TAMBÉM PODE GOSTAR",
+                movies = state.recommendations,
+                onMovieClick = onMovieClick,
+                onLoadMore = {}
+            )
+        }
+
         if (relatedMovies.isNotEmpty()) {
             RelatedMoviesSection(
+                title = "OUTRAS RECOMENDAÇÕES",
                 movies = relatedMovies,
                 onMovieClick = onMovieClick,
                 onLoadMore = onLoadMoreRelated
             )
         }
+
+
+
+        if (state.reviews.isNotEmpty()) {
+            ReviewsSection(reviews = state.reviews)
+        }
+
+        /*if (state.movieLists.isNotEmpty()) {
+            MovieListsSection(lists = state.movieLists)
+        }
+
+         */
 
         Spacer(modifier = Modifier.height(100.dp))
     }
@@ -561,6 +584,7 @@ private fun TrailerSection(trailer: br.com.watchusee.android.data.dto.MovieTrail
 
 @Composable
 private fun RelatedMoviesSection(
+    title: String,
     movies: List<MovieResponse>,
     onMovieClick: (Long) -> Unit,
     onLoadMore: () -> Unit
@@ -588,7 +612,7 @@ private fun RelatedMoviesSection(
             .padding(vertical = 16.dp)
     ) {
         Text(
-            text = "VOCÊ TAMBÉM PODE GOSTAR",
+            text = title,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.5.sp,
@@ -615,15 +639,144 @@ private fun RelatedMoviesSection(
 }
 
 @Composable
+private fun ReviewsSection(reviews: List<br.com.watchusee.android.data.dto.ReviewResponse>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp, horizontal = 24.dp)
+    ) {
+        Text(
+            text = "AVALIAÇÕES",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 1.5.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        reviews.take(3).forEach { review ->
+            ReviewItem(review = review)
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
+}
+
+@Composable
+private fun ReviewItem(review: br.com.watchusee.android.data.dto.ReviewResponse) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = CircleShape,
+                    modifier = Modifier.size(32.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            review.author.take(1).uppercase(),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = review.author,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = review.content,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+/* @Composable
+private fun MovieListsSection(lists: List<br.com.watchusee.android.data.dto.MovieListResponse>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp)
+    ) {
+        Text(
+            text = "NAS LISTAS",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 1.5.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 24.dp)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(lists.size) { index ->
+                val list = lists[index]
+                MovieListItem(list = list)
+            }
+        }
+    }
+}
+
+ */
+
+@Composable
+private fun MovieListItem(list: br.com.watchusee.android.data.dto.MovieListResponse) {
+    Card(
+        modifier = Modifier
+            .width(150.dp)
+            .height(80.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = list.name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (list.itemCount != null) {
+                Text(
+                    text = "${list.itemCount} itens",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun RelatedMovieCard(
     movie: MovieResponse,
     onClick: () -> Unit
 ) {
     Card(
-        onClick = onClick,
         modifier = Modifier
             .width(110.dp)
-            .height(160.dp),
+            .height(160.dp)
+            .scaleOnClick(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {

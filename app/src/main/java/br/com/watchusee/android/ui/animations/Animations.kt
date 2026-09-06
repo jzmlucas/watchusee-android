@@ -34,6 +34,7 @@ fun cardFadeInAnimation(delayMillis: Int = 0): EnterTransition {
 @Composable
 fun Modifier.scaleOnClick(
     targetScale: Float = 0.95f,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ): Modifier = composed {
     val interactionSource = remember { MutableInteractionSource() }
@@ -41,7 +42,7 @@ fun Modifier.scaleOnClick(
     val haptic = LocalHapticFeedback.current
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) targetScale else 1f,
+        targetValue = if (isPressed && enabled) targetScale else 1f,
         label = "scaleOnClick"
     )
 
@@ -49,7 +50,8 @@ fun Modifier.scaleOnClick(
         .scale(scale)
         .clickable(
             interactionSource = interactionSource,
-            indication = null
+            indication = null,
+            enabled = enabled
         ) {
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             onClick()

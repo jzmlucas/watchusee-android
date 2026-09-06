@@ -10,9 +10,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -98,7 +97,7 @@ fun RegisterScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
+                            Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = "Voltar",
                             tint = TextWhite
                         )
@@ -197,7 +196,7 @@ fun RegisterScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.PersonAdd,
+                                imageVector = Icons.Rounded.PersonAdd,
                                 contentDescription = "Criar Conta",
                                 modifier = Modifier.size(if (isSmallScreen) 28.dp else 36.dp),
                                 tint = PremiumGold
@@ -232,7 +231,7 @@ fun RegisterScreen(
                             value = nick,
                             onValueChange = { nick = it },
                             label = "Nick (Mín. 3 caracteres)",
-                            leadingIcon = Icons.Outlined.Person,
+                            leadingIcon = Icons.Rounded.Person,
                             isError = nick.isNotEmpty() && nick.length < 3,
                             supportingText = if (nick.isNotEmpty() && nick.length < 3) "Mínimo 3 caracteres" else null
                         )
@@ -243,7 +242,7 @@ fun RegisterScreen(
                             value = password,
                             onValueChange = { password = it },
                             label = "Senha (Mín. 6 caracteres)",
-                            leadingIcon = Icons.Outlined.Lock,
+                            leadingIcon = Icons.Rounded.Lock,
                             isPassword = true,
                             passwordVisible = passwordVisible,
                             onPasswordToggle = { passwordVisible = !passwordVisible },
@@ -257,7 +256,7 @@ fun RegisterScreen(
                             value = confirmPassword,
                             onValueChange = { confirmPassword = it },
                             label = "Confirmar Senha",
-                            leadingIcon = Icons.Outlined.Verified,
+                            leadingIcon = Icons.Rounded.Verified,
                             isPassword = true,
                             passwordVisible = confirmPasswordVisible,
                             onPasswordToggle = { confirmPasswordVisible = !confirmPasswordVisible },
@@ -345,7 +344,6 @@ fun RegisterScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Divisor
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.Center,

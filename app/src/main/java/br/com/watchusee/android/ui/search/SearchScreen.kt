@@ -12,8 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -82,7 +81,7 @@ fun SearchScreen(
             },
             leadingIcon = {
                 Icon(
-                    Icons.Default.Search,
+                    Icons.Rounded.Search,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -95,7 +94,7 @@ fun SearchScreen(
                         }
                     ) {
                         Icon(
-                            Icons.Default.Close,
+                            Icons.Rounded.Close,
                             contentDescription = "Limpar",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -143,7 +142,7 @@ fun SearchScreen(
                         if (state.trendingMovies.isEmpty()) {
                             EmptyState(
                                 message = "Descubra seu próximo filme favorito",
-                                icon = Icons.Default.Movie
+                                icon = Icons.Rounded.Movie
                             )
                         } else {
                             Column(
@@ -245,7 +244,7 @@ fun SearchScreen(
                     is SearchUiState.Empty -> {
                         EmptyState(
                             message = "Nenhum resultado para \"$query\"",
-                            icon = Icons.Default.SearchOff
+                            icon = Icons.Rounded.SearchOff
                         )
                     }
                     is SearchUiState.Error -> {
