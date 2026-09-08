@@ -67,9 +67,9 @@ fun FriendsScreen(
                     title = {
                         Text(
                             "SOCIAL",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp
+                            letterSpacing = 1.2.sp
                         )
                     },
                     navigationIcon = {

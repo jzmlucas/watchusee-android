@@ -59,7 +59,7 @@ class MovieRepository @Inject constructor(
         return movieApi.getMovieLists(movieId, page)
     }
 
-    suspend fun getMovie(movieId: Long): MovieResponse {
+    suspend fun getMovie(movieId: Long): MovieDetailsResponse {
         return movieApi.getMovie(movieId)
     }
 
@@ -91,8 +91,26 @@ class MovieRepository @Inject constructor(
         movieApi.removeFromWatchlist(movieId)
     }
 
-    suspend fun getToWatchList(): List<WatchlistItemResponse> {
-        return movieApi.getWatchlist("TO_WATCH").content
+    suspend fun getToWatchList(
+        page: Int = 0,
+        size: Int = 20
+    ): WatchlistPagedResponse {
+        return movieApi.getWatchlist(
+            status = "TO_WATCH",
+            page = page,
+            size = size
+        )
+    }
+
+    suspend fun getWatchedList(
+        page: Int = 0,
+        size: Int = 20
+    ): WatchlistPagedResponse {
+        return movieApi.getWatchlist(
+            status = "WATCHED",
+            page = page,
+            size = size
+        )
     }
 
     suspend fun getWatchlistStatus(movieId: Long): WatchlistStatusResponse {
@@ -108,11 +126,7 @@ class MovieRepository @Inject constructor(
         }
     }
 
-    suspend fun getWatchedList(): List<WatchlistItemResponse> {
-        return movieApi
-            .getWatchlist("WATCHED")
-            .content
-    }
+
 
     suspend fun getUserWatchedList(
         userId: Long

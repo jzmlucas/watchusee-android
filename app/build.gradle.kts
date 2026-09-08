@@ -88,6 +88,7 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.7")
 
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation(libs.androidx.material3)
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1")
 

@@ -1,26 +1,30 @@
 package br.com.watchusee.android.ui.watchlist
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Logout
-import androidx.compose.material.icons.automirrored.rounded.Sort
-import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Sort
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -28,22 +32,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.watchusee.android.data.dto.MovieResponse
-import br.com.watchusee.android.data.dto.WatchlistItemResponse
-import br.com.watchusee.android.ui.components.*
-import br.com.watchusee.android.ui.components.MovieGridSkeleton
 import br.com.watchusee.android.ui.animations.scaleOnClick
+import br.com.watchusee.android.ui.components.EmptyState
+import br.com.watchusee.android.ui.components.ErrorState
+import br.com.watchusee.android.ui.components.LibraryMovieCard
+import br.com.watchusee.android.ui.components.MovieGridSkeleton
+import br.com.watchusee.android.ui.components.MovieReelsActions
+import br.com.watchusee.android.ui.components.WatchuSeeTopBar
+import br.com.watchusee.android.ui.theme.DarkNavy
+import br.com.watchusee.android.ui.theme.PremiumGold
+import br.com.watchusee.android.ui.theme.SurfaceGrey
+import br.com.watchusee.android.ui.theme.TextGrey
+import br.com.watchusee.android.ui.theme.TextWhite
 import br.com.watchusee.android.util.TmdbImageUrl
 import br.com.watchusee.android.viewmodel.AuthViewModel
 import br.com.watchusee.android.viewmodel.WatchlistSortOrder
@@ -58,137 +69,449 @@ import kotlinx.coroutines.launch
 fun LibraryScreen(
     onMovieClick: (Long) -> Unit,
     onNavigateToSearch: () -> Unit,
+    onHomeClick: () -> Unit = {},
     viewModel: WatchlistViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
     onRequireLogin: () -> Unit,
     initialTab: Int = 0
 ) {
-    var selectedTab by rememberSaveable { mutableIntStateOf(initialTab) }
-    val tabs = listOf("Para Assistir", "Assistidos")
+    var selectedTab by rememberSaveable {
+        mutableIntStateOf(initialTab)
+    }
+
+    var isSearchExpanded by remember {
+        mutableStateOf(false)
+    }
+
+    var showSortMenu by remember {
+        mutableStateOf(false)
+    }
+
+    val haptic = LocalHapticFeedback.current
+
+    val tabs = listOf(
+        "Para Assistir",
+        "Assistidos"
+    )
+
     val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
-    var showSortMenu by remember { mutableStateOf(false) }
+    val query by viewModel.query.collectAsStateWithLifecycle()
+    val toWatchTotalElements by viewModel.toWatchTotalElements.collectAsStateWithLifecycle()
+    val watchedTotalElements by viewModel.watchedTotalElements.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        if (authViewModel.isAuthenticated()) {
+            viewModel.loadToWatch()
+            viewModel.loadWatched()
+        } else {
+            onRequireLogin()
+        }
+    }
+
+    val toWatchCount = toWatchTotalElements.toInt()
+    val watchedCount = watchedTotalElements.toInt()
 
     Scaffold(
         topBar = {
             Column(
                 modifier = Modifier
-                    .background(MaterialTheme.colorScheme.background)
+                    .fillMaxWidth()
+                    .background(DarkNavy)
                     .statusBarsPadding()
             ) {
-                Box(
+
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    contentAlignment = Alignment.Center
+                        .height(43.dp)
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        "BIBLIOTECA",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp
-                    )
 
-                    IconButton(
-                        onClick = { showSortMenu = true },
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.Sort,
-                            contentDescription = "Ordenar",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    if (isSearchExpanded) {
 
-                    DropdownMenu(
-                        expanded = showSortMenu,
-                        onDismissRequest = { showSortMenu = false },
-                        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-                    ) {
-                        WatchlistSortOrder.entries.forEach { order ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = order.displayName,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = if (sortOrder == order) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (sortOrder == order) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        BasicTextField(
+                            value = query,
+                            onValueChange = viewModel::onQueryChange,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(34.dp)
+                                .background(
+                                    color = SurfaceGrey.copy(alpha = 0.8f),
+                                    shape = RoundedCornerShape(17.dp)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = PremiumGold.copy(alpha = 0.3f),
+                                    shape = RoundedCornerShape(17.dp)
+                                ),
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                color = TextWhite,
+                                fontSize = 14.sp
+                            ),
+                            cursorBrush = SolidColor(PremiumGold),
+                            decorationBox = { innerTextField ->
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+
+                                    Icon(
+                                        imageVector = Icons.Rounded.Search,
+                                        contentDescription = null,
+                                        tint = PremiumGold,
+                                        modifier = Modifier.size(16.dp)
                                     )
-                                },
-                                onClick = {
-                                    viewModel.setSortOrder(order)
-                                    showSortMenu = false
-                                },
-                                leadingIcon = {
-                                    if (sortOrder == order) {
+
+                                    Spacer(
+                                        modifier = Modifier.width(8.dp)
+                                    )
+
+                                    Box(
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+
+                                        if (query.isEmpty()) {
+                                            Text(
+                                                text = "Buscar filme na biblioteca...",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = TextGrey,
+                                                fontSize = 14.sp
+                                            )
+                                        }
+
+                                        innerTextField()
+                                    }
+
+                                    if (query.isNotEmpty()) {
+                                        IconButton(
+                                            onClick = {
+                                                viewModel.onQueryChange("")
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Close,
+                                                contentDescription = "Limpar",
+                                                tint = TextGrey,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+
+                                    IconButton(
+                                        onClick = {
+                                            isSearchExpanded = false
+                                            viewModel.onQueryChange("")
+                                        },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
                                         Icon(
-                                            Icons.Rounded.Check,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
+                                            imageVector = Icons.Rounded.Close,
+                                            contentDescription = "Fechar",
+                                            tint = TextWhite,
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
                                 }
-                            )
+                            }
+                        )
+
+                    } else {
+
+                        Text(
+                            text = "Biblioteca",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = TextWhite,
+                            letterSpacing = (-0.5).sp,
+                            modifier = Modifier.clickable {
+                                onHomeClick()
+                            }
+                        )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+
+                            IconButton(
+                                onClick = {
+                                    isSearchExpanded = true
+                                },
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Search,
+                                    contentDescription = "Buscar",
+                                    tint = TextWhite,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+
+                            Box {
+
+                                IconButton(
+                                    onClick = {
+                                        showSortMenu = true
+                                    },
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Sort,
+                                        contentDescription = "Ordenar",
+                                        tint = if (
+                                            sortOrder != WatchlistSortOrder.RECENT
+                                        ) {
+                                            PremiumGold
+                                        } else {
+                                            TextWhite
+                                        },
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+
+                                DropdownMenu(
+                                    expanded = showSortMenu,
+                                    onDismissRequest = {
+                                        showSortMenu = false
+                                    },
+                                    modifier = Modifier
+                                        .background(SurfaceGrey)
+                                        .border(
+                                            width = 1.dp,
+                                            color = PremiumGold.copy(alpha = 0.1f),
+                                            shape = RoundedCornerShape(16.dp)
+                                        )
+                                        .clip(
+                                            RoundedCornerShape(16.dp)
+                                        )
+                                ) {
+
+                                    WatchlistSortOrder.entries.forEach { order ->
+
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    text = order.displayName,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = if (
+                                                        sortOrder == order
+                                                    ) {
+                                                        FontWeight.Bold
+                                                    } else {
+                                                        FontWeight.Normal
+                                                    },
+                                                    color = if (
+                                                        sortOrder == order
+                                                    ) {
+                                                        PremiumGold
+                                                    } else {
+                                                        TextWhite
+                                                    }
+                                                )
+                                            },
+                                            onClick = {
+                                                viewModel.setSortOrder(order)
+                                                showSortMenu = false
+                                            },
+                                            leadingIcon = {
+                                                if (sortOrder == order) {
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.Check,
+                                                        contentDescription = null,
+                                                        tint = PremiumGold,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
 
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = Color.Transparent,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    indicator = { tabPositions ->
-                        TabRowDefaults.SecondaryIndicator(
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                            color = MaterialTheme.colorScheme.primary
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 2.dp,
+                            bottom = 4.dp
                         )
-                    },
-                    divider = {},
-                    modifier = Modifier.height(48.dp)
+                        .background(
+                            color = SurfaceGrey.copy(alpha = 0.4f),
+                            shape = CircleShape
+                        )
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
+
                     tabs.forEachIndexed { index, title ->
-                        Tab(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            text = {
+
+                        val isSelected = selectedTab == index
+                        val count = if (index == 0) {
+                            toWatchCount
+                        } else {
+                            watchedCount
+                        }
+
+                        val backgroundColor by animateColorAsState(
+                            targetValue = if (isSelected) {
+                                PremiumGold
+                            } else {
+                                Color.Transparent
+                            },
+                            animationSpec = tween(300),
+                            label = "tabBackground"
+                        )
+
+                        val textColor by animateColorAsState(
+                            targetValue = if (isSelected) {
+                                DarkNavy
+                            } else {
+                                TextGrey
+                            },
+                            animationSpec = tween(300),
+                            label = "tabText"
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp)
+                                .clip(CircleShape)
+                                .background(backgroundColor)
+                                .clickable {
+
+                                    if (selectedTab != index) {
+                                        haptic.performHapticFeedback(
+                                            HapticFeedbackType.LongPress
+                                        )
+
+                                        selectedTab = index
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+
                                 Text(
                                     text = title,
                                     style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal
+                                    fontWeight = if (isSelected) {
+                                        FontWeight.ExtraBold
+                                    } else {
+                                        FontWeight.SemiBold
+                                    },
+                                    color = textColor,
+                                    fontSize = 13.sp
                                 )
+
+                                Spacer(
+                                    modifier = Modifier.width(6.dp)
+                                )
+
+                                Surface(
+                                    color = if (isSelected) {
+                                        DarkNavy.copy(alpha = 0.2f)
+                                    } else {
+                                        SurfaceGrey.copy(alpha = 0.5f)
+                                    },
+                                    shape = CircleShape
+                                ) {
+                                    Text(
+                                        text = count.toString(),
+                                        modifier = Modifier.padding(
+                                            horizontal = 6.dp,
+                                            vertical = 2.dp
+                                        ),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = textColor,
+                                        fontSize = 10.sp
+                                    )
+                                }
                             }
-                        )
+                        }
                     }
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = DarkNavy
     ) { paddingValues ->
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+
             when (selectedTab) {
+
                 0 -> ToWatchTab(
                     onMovieClick = onMovieClick,
                     onNavigateToSearch = onNavigateToSearch,
-                    viewModel = viewModel,
-                    authViewModel = authViewModel,
-                    onRequireLogin = onRequireLogin
+                    viewModel = viewModel
                 )
+
                 1 -> WatchedTab(
                     onMovieClick = onMovieClick,
                     onNavigateToSearch = onNavigateToSearch,
-                    viewModel = viewModel,
-                    authViewModel = authViewModel,
-                    onRequireLogin = onRequireLogin
+                    viewModel = viewModel
                 )
             }
         }
     }
+}
+
+@Composable
+fun ToWatchScreen(
+    onMovieClick: (Long) -> Unit,
+    onNavigateToSearch: () -> Unit,
+    viewModel: WatchlistViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel(),
+    onRequireLogin: () -> Unit,
+    onLogout: () -> Unit = {}
+) {
+    LibraryScreen(
+        onMovieClick = onMovieClick,
+        onNavigateToSearch = onNavigateToSearch,
+        viewModel = viewModel,
+        authViewModel = authViewModel,
+        onRequireLogin = onRequireLogin,
+        initialTab = 0
+    )
+}
+
+@Composable
+fun WatchedScreen(
+    onMovieClick: (Long) -> Unit,
+    onNavigateToSearch: () -> Unit,
+    viewModel: WatchlistViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel(),
+    onRequireLogin: () -> Unit,
+    onLogout: () -> Unit = {}
+) {
+    LibraryScreen(
+        onMovieClick = onMovieClick,
+        onNavigateToSearch = onNavigateToSearch,
+        viewModel = viewModel,
+        authViewModel = authViewModel,
+        onRequireLogin = onRequireLogin,
+        initialTab = 1
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -196,30 +519,47 @@ fun LibraryScreen(
 private fun ToWatchTab(
     onMovieClick: (Long) -> Unit,
     onNavigateToSearch: () -> Unit,
-    viewModel: WatchlistViewModel,
-    authViewModel: AuthViewModel,
-    onRequireLogin: () -> Unit
+    viewModel: WatchlistViewModel
 ) {
     val uiState by viewModel.toWatchState.collectAsStateWithLifecycle()
-    val query by viewModel.query.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
-    val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
-    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
-    val haptic = LocalHapticFeedback.current
-    val snackbarHostState = remember { SnackbarHostState() }
-    val gridState = rememberLazyGridState()
-    val scope = rememberCoroutineScope()
-    var showEmptyAnimation by remember { mutableStateOf(false) }
 
-    LaunchedEffect(sortOrder) {
-        gridState.animateScrollToItem(0)
+    val haptic = LocalHapticFeedback.current
+    val snackbarHostState = remember {
+        SnackbarHostState()
     }
 
-    LaunchedEffect(currentUser) {
-        if (currentUser != null) {
-            viewModel.loadToWatch()
-        } else if (!authViewModel.isAuthenticated()) {
-            onRequireLogin()
+    val gridState = rememberLazyGridState()
+    val scope = rememberCoroutineScope()
+
+    var showEmptyAnimation by remember {
+        mutableStateOf(false)
+    }
+
+    LaunchedEffect(gridState) {
+        snapshotFlow {
+            gridState.layoutInfo.visibleItemsInfo
+                .lastOrNull()
+                ?.index
+        }.collect { lastVisibleIndex ->
+
+            if (lastVisibleIndex == null) {
+                return@collect
+            }
+
+            val totalItems = when (val state = uiState) {
+                is WatchlistUiState.Success -> state.items.size
+                else -> 0
+            }
+
+            if (
+                viewModel.shouldLoadMoreToWatch(
+                    lastVisibleIndex = lastVisibleIndex,
+                    totalItems = totalItems
+                )
+            ) {
+                viewModel.loadMoreToWatch()
+            }
         }
     }
 
@@ -231,12 +571,19 @@ private fun ToWatchTab(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                viewModel.loadToWatch(isRefresh = true)
+                haptic.performHapticFeedback(
+                    HapticFeedbackType.LongPress
+                )
+
+                viewModel.loadToWatch(
+                    isRefresh = true
+                )
             },
             modifier = Modifier.fillMaxSize()
         ) {
@@ -246,15 +593,22 @@ private fun ToWatchTab(
                 onMovieClick = onMovieClick,
                 onRemove = { movieId ->
                     viewModel.removeFromToWatch(movieId)
+
                     scope.launch {
-                        snackbarHostState.showSnackbar(
-                            message = "Filme removido da lista",
+                        val result = snackbarHostState.showSnackbar(
+                            message = "Removido da lista",
+                            actionLabel = "Desfazer",
                             duration = SnackbarDuration.Short
                         )
+
+                        if (result == SnackbarResult.ActionPerformed) {
+                            viewModel.undoLastRemoval()
+                        }
                     }
                 },
                 onAction = { movieId ->
                     viewModel.markAsWatched(movieId)
+
                     scope.launch {
                         snackbarHostState.showSnackbar(
                             message = "Marcado como assistido!",
@@ -262,28 +616,19 @@ private fun ToWatchTab(
                         )
                     }
                 },
-                actionIcon = Icons.Rounded.Visibility,
-                actionLabel = "Assistir",
-                emptyMessage = "Sua lista de desejos está vazia",
                 modifier = Modifier.fillMaxSize(),
-                onRetry = { viewModel.loadToWatch() },
+                onRetry = viewModel::loadToWatch,
                 showEmptyAnimation = showEmptyAnimation,
-                onEmptyAction = onNavigateToSearch
+                onEmptyAction = onNavigateToSearch,
+                isWatchedTab = false
             )
         }
 
-        WatchlistSearchBar(
-            query = query,
-            onQueryChange = { viewModel.onQueryChange(it) },
-            placeholder = "Buscar",
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 16.dp)
-        )
-        
         SnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 100.dp)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 100.dp)
         )
     }
 }
@@ -293,38 +638,59 @@ private fun ToWatchTab(
 private fun WatchedTab(
     onMovieClick: (Long) -> Unit,
     onNavigateToSearch: () -> Unit,
-    viewModel: WatchlistViewModel,
-    authViewModel: AuthViewModel,
-    onRequireLogin: () -> Unit
+    viewModel: WatchlistViewModel
 ) {
     val uiState by viewModel.watchedState.collectAsStateWithLifecycle()
-    val query by viewModel.query.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
-    val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
-    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
+
     val haptic = LocalHapticFeedback.current
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember {
+        SnackbarHostState()
+    }
+
     val gridState = rememberLazyGridState()
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(sortOrder) {
-        gridState.animateScrollToItem(0)
-    }
+    LaunchedEffect(gridState) {
+        snapshotFlow {
+            gridState.layoutInfo.visibleItemsInfo
+                .lastOrNull()
+                ?.index
+        }.collect { lastVisibleIndex ->
 
-    LaunchedEffect(currentUser) {
-        if (currentUser != null) {
-            viewModel.loadWatched()
-        } else if (!authViewModel.isAuthenticated()) {
-            onRequireLogin()
+            if (lastVisibleIndex == null) {
+                return@collect
+            }
+
+            val totalItems = when (val state = uiState) {
+                is WatchlistUiState.Success -> state.items.size
+                else -> 0
+            }
+
+            if (
+                viewModel.shouldLoadMoreWatched(
+                    lastVisibleIndex = lastVisibleIndex,
+                    totalItems = totalItems
+                )
+            ) {
+                viewModel.loadMoreWatched()
+            }
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                viewModel.loadWatched(isRefresh = true)
+                haptic.performHapticFeedback(
+                    HapticFeedbackType.LongPress
+                )
+
+                viewModel.loadWatched(
+                    isRefresh = true
+                )
             },
             modifier = Modifier.fillMaxSize()
         ) {
@@ -334,15 +700,22 @@ private fun WatchedTab(
                 onMovieClick = onMovieClick,
                 onRemove = { movieId ->
                     viewModel.removeFromWatched(movieId)
+
                     scope.launch {
-                        snackbarHostState.showSnackbar(
-                            message = "Filme removido dos assistidos",
+                        val result = snackbarHostState.showSnackbar(
+                            message = "Removido dos assistidos",
+                            actionLabel = "Desfazer",
                             duration = SnackbarDuration.Short
                         )
+
+                        if (result == SnackbarResult.ActionPerformed) {
+                            viewModel.undoLastRemoval()
+                        }
                     }
                 },
                 onAction = { movieId ->
                     viewModel.addToWatch(movieId)
+
                     scope.launch {
                         snackbarHostState.showSnackbar(
                             message = "Movido para a lista!",
@@ -350,291 +723,18 @@ private fun WatchedTab(
                         )
                     }
                 },
-                actionIcon = Icons.Rounded.Bookmark,
-                actionLabel = "Lista",
-                emptyMessage = "Você ainda não marcou nenhum filme como assistido",
                 modifier = Modifier.fillMaxSize(),
-                onRetry = { viewModel.loadWatched() },
+                onRetry = viewModel::loadWatched,
                 onEmptyAction = onNavigateToSearch,
                 isWatchedTab = true
             )
         }
 
-        WatchlistSearchBar(
-            query = query,
-            onQueryChange = { viewModel.onQueryChange(it) },
-            placeholder = "Buscar",
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 16.dp)
-        )
-
         SnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 100.dp)
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
-@Composable
-fun ToWatchScreen(
-    onMovieClick: (Long) -> Unit,
-    onNavigateToSearch: () -> Unit,
-    viewModel: WatchlistViewModel,
-    authViewModel: br.com.watchusee.android.viewmodel.AuthViewModel,
-    onRequireLogin: () -> Unit,
-    onLogout: () -> Unit = {}
-) {
-    val uiState by viewModel.toWatchState.collectAsStateWithLifecycle()
-    val query by viewModel.query.collectAsStateWithLifecycle()
-    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
-    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
-    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
-    val snackbarHostState = remember { SnackbarHostState() }
-    val gridState = rememberLazyGridState()
-    val scope = rememberCoroutineScope()
-    var showEmptyAnimation by remember { mutableStateOf(false) }
-
-    LaunchedEffect(currentUser) {
-        if (currentUser != null) {
-            viewModel.loadToWatch()
-        } else if (!authViewModel.isAuthenticated()) {
-            onRequireLogin()
-        }
-    }
-
-    LaunchedEffect(uiState) {
-        if (uiState is WatchlistUiState.Empty) {
-            showEmptyAnimation = true
-            delay(500)
-            showEmptyAnimation = false
-        }
-    }
-
-    if (currentUser == null) return
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        CenterAlignedTopAppBar(
-            title = {
-                Text(
-                    "PARA ASSISTIR",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
-            }
-        )
-
-        Box(modifier = Modifier.weight(1f)) {
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = {
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                    viewModel.loadToWatch(isRefresh = true)
-                },
-                modifier = Modifier.fillMaxSize()
-            ) {
-                WatchlistContent(
-                    uiState = uiState,
-                    gridState = gridState,
-                    onMovieClick = onMovieClick,
-                    onRemove = { movieId ->
-                        viewModel.removeFromToWatch(movieId)
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = "Filme removido da lista",
-                                duration = SnackbarDuration.Short
-                            )
-                        }
-                    },
-                    onAction = { movieId ->
-                        viewModel.markAsWatched(movieId)
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = "Marcado como assistido!",
-                                duration = SnackbarDuration.Short
-                            )
-                        }
-                    },
-                    actionIcon = Icons.Rounded.Visibility,
-                    actionLabel = "Assistir",
-                    emptyMessage = "Sua lista de desejos está vazia",
-                    modifier = Modifier.fillMaxSize(),
-                    onRetry = { viewModel.loadToWatch() },
-                    showEmptyAnimation = showEmptyAnimation,
-                    onEmptyAction = onNavigateToSearch
-                )
-            }
-
-            WatchlistSearchBar(
-                query = query,
-                onQueryChange = { viewModel.onQueryChange(it) },
-                placeholder = "Buscar",
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 20.dp)
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun WatchedScreen(
-    onMovieClick: (Long) -> Unit,
-    onNavigateToSearch: () -> Unit,
-    viewModel: WatchlistViewModel,
-    authViewModel: br.com.watchusee.android.viewmodel.AuthViewModel,
-    onRequireLogin: () -> Unit,
-    onLogout: () -> Unit = {}
-) {
-    val uiState by viewModel.watchedState.collectAsStateWithLifecycle()
-    val query by viewModel.query.collectAsStateWithLifecycle()
-    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
-    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
-    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
-    val snackbarHostState = remember { SnackbarHostState() }
-    val gridState = rememberLazyGridState()
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(currentUser) {
-        if (currentUser != null) {
-            viewModel.loadWatched()
-        } else if (!authViewModel.isAuthenticated()) {
-            onRequireLogin()
-        }
-    }
-
-    if (currentUser == null) return
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        CenterAlignedTopAppBar(
-            title = {
-                Text(
-                    "ASSISTIDOS",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
-            }
-        )
-
-        Box(modifier = Modifier.weight(1f)) {
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = {
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                    viewModel.loadWatched(isRefresh = true)
-                },
-                modifier = Modifier.fillMaxSize()
-            ) {
-                WatchlistContent(
-                    uiState = uiState,
-                    gridState = gridState,
-                    onMovieClick = onMovieClick,
-                    onRemove = { movieId ->
-                        viewModel.removeFromWatched(movieId)
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = "Filme removido dos assistidos",
-                                duration = SnackbarDuration.Short
-                            )
-                        }
-                    },
-                    onAction = { movieId ->
-                        viewModel.addToWatch(movieId)
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = "Movido para a lista!",
-                                duration = SnackbarDuration.Short
-                            )
-                        }
-                    },
-                    actionIcon = Icons.Rounded.Bookmark,
-                    actionLabel = "Lista",
-                    emptyMessage = "Você ainda não marcou nenhum filme como assistido",
-                    modifier = Modifier.fillMaxSize(),
-                    onRetry = { viewModel.loadWatched() },
-                    onEmptyAction = onNavigateToSearch,
-                    isWatchedTab = true
-                )
-            }
-
-            WatchlistSearchBar(
-                query = query,
-                onQueryChange = { viewModel.onQueryChange(it) },
-                placeholder = "Buscar",
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 20.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun WatchlistSearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    placeholder: String,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 100.dp),
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
-        tonalElevation = 8.dp,
-        shadowElevation = 12.dp,
-    ) {
-        TextField(
-            value = query,
-            onValueChange = onQueryChange,
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = {
-                Text(
-                    placeholder,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                )
-            },
-            leadingIcon = {
-                Icon(
-                    Icons.Rounded.Search,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            trailingIcon = {
-                if (query.isNotEmpty()) {
-                    IconButton(onClick = { onQueryChange("") }) {
-                        Icon(
-                            Icons.Rounded.Close,
-                            contentDescription = "Limpar",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            },
-            singleLine = true,
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                disabledContainerColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                cursorColor = MaterialTheme.colorScheme.primary
-            )
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 100.dp)
         )
     }
 }
@@ -646,122 +746,138 @@ private fun WatchlistContent(
     onMovieClick: (Long) -> Unit,
     onRemove: (Long) -> Unit,
     onRetry: () -> Unit,
-    emptyMessage: String,
     modifier: Modifier = Modifier,
-    onAction: ((Long) -> Unit)? = null,
-    actionIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
-    actionLabel: String? = null,
+    onAction: (Long) -> Unit,
     showEmptyAnimation: Boolean = false,
-    onEmptyAction: (() -> Unit)? = null,
+    onEmptyAction: () -> Unit,
     isWatchedTab: Boolean = false
 ) {
     when (uiState) {
-        is WatchlistUiState.Loading -> MovieGridSkeleton(modifier, columns = 2)
+        WatchlistUiState.Loading -> {
+            MovieGridSkeleton(
+                modifier = modifier,
+                columns = 2
+            )
+        }
+
         is WatchlistUiState.Empty -> {
-            AnimatedContent(
-                targetState = showEmptyAnimation,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(500)) togetherWith
-                            fadeOut(animationSpec = tween(500))
-                },
-                label = "WatchlistEmptyAnimation"
-            ) { _ ->
-                EmptyState(
-                    message = emptyMessage,
-                    modifier = modifier,
-                    actionLabel = "Descobrir Filmes",
-                    onAction = onEmptyAction
+            Box(
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(
+                        horizontal = 24.dp,
+                        vertical = 32.dp
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedContent(
+                    targetState = showEmptyAnimation,
+                    transitionSpec = {
+                        fadeIn(
+                            animationSpec = tween(500)
+                        ) togetherWith fadeOut(
+                            animationSpec = tween(500)
+                        )
+                    },
+                    label = "WatchlistEmptyAnimation"
+                ) {
+                    EmptyState(
+                        message = if (isWatchedTab) {
+                            "Você ainda não marcou nenhum filme como assistido"
+                        } else {
+                            "Você ainda não adicionou filmes para assistir"
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        actionLabel = "Descobrir Filmes",
+                        onAction = onEmptyAction
+                    )
+                }
+            }
+        }
+
+        is WatchlistUiState.Error -> {
+            Box(
+                modifier = modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                ErrorState(
+                    message = uiState.message,
+                    onRetry = onRetry,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
-        is WatchlistUiState.Error -> ErrorState(uiState.message, onRetry, modifier)
+
         is WatchlistUiState.Success -> {
-            LazyVerticalGrid(
-                state = gridState,
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = 8.dp,
-                    end = 16.dp,
-                    bottom = 120.dp
-                ),
-                modifier = modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                itemsIndexed(
-                    items = uiState.items,
-                    key = { _, item -> item.movie.id },
-                    span = { index, _ ->
-                        if (index == 0) GridItemSpan(2) else GridItemSpan(1)
-                    }
-                ) { index, item ->
-                    val movie = item.movie
-                    if (index == 0) {
-                        LargeMovieCard(
+            val uniqueItems = remember(uiState.items) {
+                uiState.items.distinctBy { it.movie.id }
+            }
+
+            if (uniqueItems.isEmpty()) {
+                Box(
+                    modifier = modifier
+                        .fillMaxSize()
+                        .padding(
+                            horizontal = 24.dp,
+                            vertical = 32.dp
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyState(
+                        message = if (isWatchedTab) {
+                            "Você ainda não marcou nenhum filme como assistido"
+                        } else {
+                            "Você ainda não adicionou filmes para assistir"
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        actionLabel = "Descobrir Filmes",
+                        onAction = onEmptyAction
+                    )
+                }
+            } else {
+                LazyVerticalGrid(
+                    state = gridState,
+                    columns = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        top = 16.dp,
+                        end = 16.dp,
+                        bottom = 120.dp
+                    ),
+                    modifier = modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(
+                        items = uniqueItems,
+                        key = { item ->
+                            item.movie.id
+                        }
+                    ) { item ->
+
+                        val movie = item.movie
+
+                        LibraryMovieCard(
                             movie = movie,
-                            onClick = { onMovieClick(movie.id) },
-                            onWatchedClick = if (!isWatchedTab) { { onAction?.invoke(movie.id) } } else null,
-                            onToWatchClick = if (isWatchedTab) { { onAction?.invoke(movie.id) } } else null,
-                            onDeleteClick = { onRemove(movie.id) },
-                            isToWatch = !isWatchedTab,
-                            isWatched = isWatchedTab
-                        )
-                    } else {
-                        MoviePosterCard(
-                            movie = movie,
-                            onClick = { onMovieClick(movie.id) },
-                            index = index,
-                            isToWatch = !isWatchedTab,
                             isWatched = isWatchedTab,
-                            onDeleteClick = { onRemove(movie.id) },
-                            onWatchedClick = if (!isWatchedTab) { { onAction?.invoke(movie.id) } } else null,
-                            onToWatchClick = if (isWatchedTab) { { onAction?.invoke(movie.id) } } else null,
-                            onSwipeLeft = { onRemove(movie.id) },
-                            onSwipeRight = { onAction?.invoke(movie.id) }
+                            onClick = {
+                                onMovieClick(movie.id)
+                            },
+                            onRemoveClick = {
+                                onRemove(movie.id)
+                            },
+                            onToggleWatchedClick = {
+                                onAction(movie.id)
+                            },
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = tween(500),
+                                placementSpec = tween(500)
+                            )
                         )
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun WatchlistMovieCard(
-    movie: MovieResponse,
-    onClick: () -> Unit,
-    onRemove: () -> Unit,
-    onAction: (() -> Unit)? = null,
-    actionIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
-    actionLabel: String? = null,
-    index: Int = 0,
-    isLarge: Boolean = false
-) {
-    val toWatch = actionLabel == "Assistir"
-    val watched = actionLabel == "Lista"
-
-    if (isLarge) {
-        LargeMovieCard(
-            movie = movie,
-            onClick = onClick,
-            onWatchedClick = if (toWatch) onAction else null,
-            onToWatchClick = if (watched) onAction else null,
-            onDeleteClick = onRemove,
-            isToWatch = toWatch,
-            isWatched = watched
-        )
-    } else {
-        MoviePosterCard(
-            movie = movie,
-            onClick = onClick,
-            index = index,
-            onWatchedClick = if (toWatch) onAction else null,
-            onToWatchClick = if (watched) onAction else null,
-            onDeleteClick = onRemove,
-            isToWatch = toWatch,
-            isWatched = watched
-        )
     }
 }
 
@@ -775,109 +891,26 @@ private fun LargeMovieCard(
     isToWatch: Boolean = false,
     isWatched: Boolean = false
 ) {
-    var feedbackIcon by remember { mutableStateOf<androidx.compose.ui.graphics.vector.ImageVector?>(null) }
-    var feedbackColor by remember { mutableStateOf(Color.White) }
-    val feedbackAlpha = remember { Animatable(0f) }
-    val feedbackScale = remember { Animatable(0.5f) }
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val errorColor = MaterialTheme.colorScheme.error
-    val scope = rememberCoroutineScope()
-
-    var prevToWatch by remember { mutableStateOf(isToWatch) }
-    var prevWatched by remember { mutableStateOf(isWatched) }
-
-    // Drag and Drop States
-    var dragOffsetY by remember { mutableFloatStateOf(0f) }
-    var isDragging by remember { mutableStateOf(false) }
-    val animatedDragOffset by animateFloatAsState(
-        targetValue = dragOffsetY,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "drag_offset"
-    )
-    val haptic = LocalHapticFeedback.current
-
-    LaunchedEffect(isToWatch, isWatched) {
-        val isRemoved = (prevToWatch && !isToWatch) || (prevWatched && !isWatched)
-        val icon = when {
-            isWatched -> Icons.Rounded.Visibility
-            isToWatch -> Icons.Rounded.Bookmark
-            isRemoved -> Icons.Rounded.Delete
-            else -> null
-        }
-
-        if (icon != null) {
-            feedbackIcon = icon
-            feedbackColor = when {
-                isWatched -> Color(0xFF2E7D32)
-                isToWatch -> primaryColor
-                else -> errorColor
-            }
-
-            scope.launch {
-                feedbackAlpha.snapTo(0.8f)
-                feedbackScale.snapTo(0.6f)
-                launch { feedbackAlpha.animateTo(0f, tween(800)) }
-                launch { feedbackScale.animateTo(1.5f, tween(800)) }
-            }
-        }
-        prevToWatch = isToWatch
-        prevWatched = isWatched
-    }
-
-    Box(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(240.dp)
-            .pointerInput(Unit) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = {
-                        isDragging = true
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        dragOffsetY += dragAmount.y
-                    },
-                    onDragEnd = {
-                        if (dragOffsetY < -150f) {
-                            onWatchedClick?.invoke()
-                            onToWatchClick?.invoke() // For Watched tab, this moves back to watchlist
-                        } else if (dragOffsetY > 150f) {
-                            onDeleteClick?.invoke()
-                        }
-                        dragOffsetY = 0f
-                        scope.launch {
-                            delay(100)
-                            isDragging = false
-                        }
-                    },
-                    onDragCancel = {
-                        dragOffsetY = 0f
-                        scope.launch {
-                            delay(100)
-                            isDragging = false
-                        }
-                    }
-                )
-            }
-            .graphicsLayer {
-                translationY = animatedDragOffset
-                scaleX = if (isDragging) 1.05f else 1f
-                scaleY = if (isDragging) 1.05f else 1f
-                alpha = if (isDragging) 0.8f else 1f
-                shadowElevation = if (isDragging) 20f else 0f
-            }
+            .height(200.dp)
             .clip(RoundedCornerShape(16.dp))
-            .scaleOnClick(
-                enabled = !isDragging,
-                onClick = onClick
-            )
+            .scaleOnClick(onClick = onClick),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        ),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box {
             AsyncImage(
-                model = TmdbImageUrl.getBackdropUrl(movie.backdropPath)
-                    ?: TmdbImageUrl.getPosterUrl(movie.posterPath, "w780"),
-                contentDescription = null,
+                model = TmdbImageUrl.getBackdropUrl(
+                    movie.backdropPath
+                ) ?: TmdbImageUrl.getPosterUrl(
+                    movie.posterPath,
+                    "w780"
+                ),
+                contentDescription = movie.title,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
@@ -887,31 +920,14 @@ private fun LargeMovieCard(
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
-                            startY = 0.4f
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.7f)
+                            ),
+                            startY = 0.5f
                         )
                     )
             )
-
-            feedbackIcon?.let { icon ->
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = feedbackColor.copy(alpha = feedbackAlpha.value),
-                        modifier = Modifier
-                            .size(80.dp)
-                            .graphicsLayer(
-                                scaleX = feedbackScale.value,
-                                scaleY = feedbackScale.value,
-                                alpha = feedbackAlpha.value
-                            )
-                    )
-                }
-            }
 
             Column(
                 modifier = Modifier
@@ -923,13 +939,20 @@ private fun LargeMovieCard(
                     text = movie.title,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = movie.releaseDate?.take(4) ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.7f)
-                )
+
+                movie.releaseDate
+                    ?.take(4)
+                    ?.let { year ->
+                        Text(
+                            text = year,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.7f)
+                        )
+                    }
             }
 
             MovieReelsActions(

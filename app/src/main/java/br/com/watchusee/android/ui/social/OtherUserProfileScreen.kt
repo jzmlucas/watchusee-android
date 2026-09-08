@@ -83,9 +83,9 @@ fun OtherUserProfileScreen(
                 ) {
                     Text(
                         "PERFIL",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = 3.sp,
+                        letterSpacing = 1.2.sp,
                         color = TextWhite
                     )
                     IconButton(

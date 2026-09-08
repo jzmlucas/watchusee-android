@@ -164,7 +164,20 @@ class ShareViewModel @Inject constructor(
         uniqueMovieIds.filter { !currentDetails.containsKey(it) }.map { movieId ->
             viewModelScope.async {
                 try {
-                    movieId to repository.getMovie(movieId)
+                    val detail = repository.getMovie(movieId)
+                    val movie = MovieResponse(
+                        id = detail.id,
+                        title = detail.title,
+                        overview = detail.overview,
+                        releaseDate = detail.releaseDate,
+                        posterPath = detail.posterPath,
+                        backdropPath = detail.backdropPath,
+                        rating = detail.rating,
+                        voteCount = detail.voteCount,
+                        runtime = detail.runtime,
+                        genres = detail.genres
+                    )
+                    movieId to movie
                 } catch (e: Exception) {
                     null
                 }

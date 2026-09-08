@@ -39,16 +39,16 @@ fun AboutScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(56.dp)
                     .background(MaterialTheme.colorScheme.background)
                     .statusBarsPadding(),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     "SOBRE",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 2.sp
+                    letterSpacing = 1.2.sp
                 )
 
                 IconButton(

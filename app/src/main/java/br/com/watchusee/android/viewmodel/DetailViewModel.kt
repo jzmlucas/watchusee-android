@@ -18,7 +18,7 @@ sealed interface DetailUiState {
     data object Loading : DetailUiState
 
     data class Success(
-        val movie: MovieResponse,
+        val movie: br.com.watchusee.android.data.dto.MovieDetailsResponse,
         val status: WatchlistStatusResponse,
         val trailer: br.com.watchusee.android.data.dto.MovieTrailerResponse? = null,
         val relatedMovies: List<MovieResponse> = emptyList(),

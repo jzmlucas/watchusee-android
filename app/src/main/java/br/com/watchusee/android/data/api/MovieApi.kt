@@ -73,7 +73,7 @@ interface MovieApi {
     @GET("api/v1/movies/{movieId}")
     suspend fun getMovie(
         @Path("movieId") movieId: Long
-    ): MovieResponse
+    ): MovieDetailsResponse
 
     @GET("api/v1/movies/{movieId}/trailer")
     suspend fun getMovieTrailer(
@@ -99,7 +99,9 @@ interface MovieApi {
 
     @GET("api/v1/watchlist")
     suspend fun getWatchlist(
-        @Query("status") status: String
+        @Query("status") status: String,
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 20
     ): WatchlistPagedResponse
 
     @GET("api/v1/watchlist/{movieId}")

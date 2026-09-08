@@ -420,31 +420,6 @@ fun LoadingState(modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-fun EmptyState(
-    message: String,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.fillMaxSize().padding(32.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.Movie,
-            contentDescription = null,
-            modifier = Modifier.size(80.dp),
-            tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-    }
-}
 
 @Composable
 fun ErrorState(

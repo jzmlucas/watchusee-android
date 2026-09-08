@@ -13,7 +13,10 @@ import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
 sealed interface SearchUiState {
-    data class Idle(val trendingMovies: List<MovieResponse> = emptyList()) : SearchUiState
+    data class Idle(
+        val trendingMovies: List<MovieResponse> = emptyList(),
+        val statuses: Map<Long, WatchlistStatusResponse> = emptyMap()
+    ) : SearchUiState
     data object Loading : SearchUiState
     data class Success(
         val movies: List<MovieResponse>,
@@ -30,16 +33,24 @@ class SearchViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<SearchUiState>(SearchUiState.Idle())
-    val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
+    private val _uiState =
+        MutableStateFlow<SearchUiState>(SearchUiState.Loading)
+
+    val uiState: StateFlow<SearchUiState> =
+        _uiState.asStateFlow()
 
     private val _query = MutableStateFlow("")
-    val query: StateFlow<String> = _query.asStateFlow()
+    val query: StateFlow<String> =
+        _query.asStateFlow()
 
     private var trendingMovies: List<MovieResponse> = emptyList()
 
+    private var trendingStatuses:
+            Map<Long, WatchlistStatusResponse> = emptyMap()
+
     init {
         fetchTrendingMovies()
+
         viewModelScope.launch {
             _query
                 .debounce(500.milliseconds)
@@ -53,21 +64,65 @@ class SearchViewModel @Inject constructor(
     private fun fetchTrendingMovies() {
         viewModelScope.launch {
             try {
-                trendingMovies = repository.getTrendingMovies()
+                trendingMovies =
+                    repository.getTrendingMovies()
+
                 if (trendingMovies.isEmpty()) {
-                    trendingMovies = repository.getTopRatedMovies(1).results
+                    trendingMovies =
+                        repository.getTopRatedMovies(1).results
                 }
+
+                trendingStatuses =
+                    if (authRepository.isAuthenticated()) {
+                        coroutineScope {
+                            trendingMovies
+                                .map { movie ->
+                                    async {
+                                        val status =
+                                            try {
+                                                repository
+                                                    .getWatchlistStatus(movie.id)
+                                            } catch (e: Exception) {
+                                                WatchlistStatusResponse(
+                                                    movie.id,
+                                                    false,
+                                                    false
+                                                )
+                                            }
+
+                                        movie.id to status
+                                    }
+                                }
+                                .awaitAll()
+                                .toMap()
+                        }
+                    } else {
+                        emptyMap()
+                    }
+
             } catch (e: Exception) {
-                android.util.Log.e("SearchViewModel", "Erro ao buscar tendências: ${e.message}", e)
+
+                android.util.Log.e(
+                    "SearchViewModel",
+                    "Erro ao buscar tendências: ${e.message}",
+                    e
+                )
+
                 try {
-                    trendingMovies = repository.getTopRatedMovies(1).results
+                    trendingMovies =
+                        repository
+                            .getTopRatedMovies(1)
+                            .results
                 } catch (inner: Exception) {
-                    // Silently fail
                 }
+
             } finally {
-                if (_uiState.value is SearchUiState.Idle) {
-                    _uiState.value = SearchUiState.Idle(trendingMovies)
-                }
+
+                _uiState.value =
+                    SearchUiState.Idle(
+                        trendingMovies = trendingMovies,
+                        statuses = trendingStatuses
+                    )
             }
         }
     }
@@ -75,14 +130,14 @@ class SearchViewModel @Inject constructor(
     fun onQueryChange(newQuery: String) {
         _query.value = newQuery
         if (newQuery.isBlank()) {
-            _uiState.value = SearchUiState.Idle(trendingMovies)
+            _uiState.value = SearchUiState.Idle(trendingMovies, trendingStatuses)
         }
     }
 
     private suspend fun performSearch(query: String) {
         val normalizedQuery = query.trim()
         if (normalizedQuery.isBlank()) {
-            _uiState.value = SearchUiState.Idle(trendingMovies)
+            _uiState.value = SearchUiState.Idle(trendingMovies, trendingStatuses)
             return
         }
 
@@ -123,28 +178,30 @@ class SearchViewModel @Inject constructor(
     fun toggleToWatch(movieId: Long) {
         viewModelScope.launch {
             val currentState = _uiState.value
-            if (currentState is SearchUiState.Success) {
-                val currentStatus = currentState.statuses[movieId] ?: WatchlistStatusResponse(movieId, false, false)
+            val currentStatus = when (currentState) {
+                is SearchUiState.Success -> currentState.statuses[movieId]
+                is SearchUiState.Idle -> currentState.statuses[movieId]
+                else -> null
+            } ?: WatchlistStatusResponse(movieId, false, false)
 
-                val optimisticStatus = currentStatus.copy(
-                    toWatch = !currentStatus.toWatch,
-                    watched = if (!currentStatus.toWatch) false else currentStatus.watched
-                )
-                updateLocalStatus(movieId, optimisticStatus)
+            val optimisticStatus = currentStatus.copy(
+                toWatch = !currentStatus.toWatch,
+                watched = if (!currentStatus.toWatch) false else currentStatus.watched
+            )
+            updateLocalStatus(movieId, optimisticStatus)
 
-                try {
-                    if (currentStatus.toWatch) {
-                        repository.removeFromToWatch(movieId)
-                    } else {
-                        if (currentStatus.watched) {
-                            repository.removeFromWatched(movieId)
-                        }
-                        repository.addToWatch(movieId)
+            try {
+                if (currentStatus.toWatch) {
+                    repository.removeFromToWatch(movieId)
+                } else {
+                    if (currentStatus.watched) {
+                        repository.removeFromWatched(movieId)
                     }
-                    refreshStatus(movieId)
-                } catch (e: Exception) {
-                    updateLocalStatus(movieId, currentStatus)
+                    repository.addToWatch(movieId)
                 }
+                refreshStatus(movieId)
+            } catch (e: Exception) {
+                updateLocalStatus(movieId, currentStatus)
             }
         }
     }
@@ -152,54 +209,62 @@ class SearchViewModel @Inject constructor(
     fun toggleWatched(movieId: Long) {
         viewModelScope.launch {
             val currentState = _uiState.value
-            if (currentState is SearchUiState.Success) {
-                val currentStatus = currentState.statuses[movieId] ?: WatchlistStatusResponse(movieId, false, false)
+            val currentStatus = when (currentState) {
+                is SearchUiState.Success -> currentState.statuses[movieId]
+                is SearchUiState.Idle -> currentState.statuses[movieId]
+                else -> null
+            } ?: WatchlistStatusResponse(movieId, false, false)
 
-                val optimisticStatus = currentStatus.copy(
-                    watched = !currentStatus.watched,
-                    toWatch = if (!currentStatus.watched) false else currentStatus.toWatch
-                )
-                updateLocalStatus(movieId, optimisticStatus)
+            val optimisticStatus = currentStatus.copy(
+                watched = !currentStatus.watched,
+                toWatch = if (!currentStatus.watched) false else currentStatus.toWatch
+            )
+            updateLocalStatus(movieId, optimisticStatus)
 
-                try {
-                    if (currentStatus.watched) {
-                        repository.removeFromWatched(movieId)
-                    } else {
-                        if (currentStatus.toWatch) {
-                            repository.removeFromToWatch(movieId)
-                        }
-                        repository.markAsWatched(movieId)
+            try {
+                if (currentStatus.watched) {
+                    repository.removeFromWatched(movieId)
+                } else {
+                    if (currentStatus.toWatch) {
+                        repository.removeFromToWatch(movieId)
                     }
-                    refreshStatus(movieId)
-                } catch (e: Exception) {
-                    updateLocalStatus(movieId, currentStatus)
+                    repository.markAsWatched(movieId)
                 }
+                refreshStatus(movieId)
+            } catch (e: Exception) {
+                updateLocalStatus(movieId, currentStatus)
             }
         }
     }
 
     private fun updateLocalStatus(movieId: Long, status: WatchlistStatusResponse) {
-        val currentState = _uiState.value
-        if (currentState is SearchUiState.Success) {
-            val newStatuses = currentState.statuses.toMutableMap()
-            newStatuses[movieId] = status
-            _uiState.value = currentState.copy(statuses = newStatuses)
+        when (val currentState = _uiState.value) {
+            is SearchUiState.Success -> {
+                val newStatuses = currentState.statuses.toMutableMap()
+                newStatuses[movieId] = status
+                _uiState.value = currentState.copy(statuses = newStatuses)
+            }
+            is SearchUiState.Idle -> {
+                val newStatuses = currentState.statuses.toMutableMap()
+                newStatuses[movieId] = status
+                _uiState.value = currentState.copy(statuses = newStatuses)
+                // Update cache
+                trendingStatuses = newStatuses
+            }
+            else -> {}
         }
     }
 
     private suspend fun refreshStatus(movieId: Long) {
-        val currentState = _uiState.value
-        if (currentState is SearchUiState.Success) {
-            val newStatus = try {
-                repository.getWatchlistStatus(movieId)
-            } catch (e: Exception) {
-                WatchlistStatusResponse(movieId, false, false)
-            }
-            updateLocalStatus(movieId, newStatus)
+        val newStatus = try {
+            repository.getWatchlistStatus(movieId)
+        } catch (e: Exception) {
+            WatchlistStatusResponse(movieId, false, false)
         }
+        updateLocalStatus(movieId, newStatus)
     }
 
     fun clearSearch() {
-        _uiState.value = SearchUiState.Idle(trendingMovies)
+        _uiState.value = SearchUiState.Idle(trendingMovies, trendingStatuses)
     }
 }
