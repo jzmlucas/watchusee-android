@@ -63,9 +63,31 @@ class MovieRepository @Inject constructor(
         return movieApi.getMovie(movieId)
     }
 
+    suspend fun getMovieCast(movieId: Long): List<MovieCastMemberResponse> {
+        return movieApi.getMovieCast(movieId)
+    }
+
     suspend fun getMovieTrailer(movieId: Long): br.com.watchusee.android.data.dto.MovieTrailerResponse {
         return movieApi.getMovieTrailer(movieId)
     }
+
+    suspend fun getMovieImages(movieId: Long): MovieImagesResponse {
+        return movieApi.getMovieImages(movieId)
+    }
+
+    suspend fun getMovieExternalIds(movieId: Long): MovieExternalIdsResponse {
+        return movieApi.getMovieExternalIds(movieId)
+    }
+
+    suspend fun discoverMovies(
+        genreIds: List<Int>? = null,
+        year: Int? = null,
+        minimumRating: Double? = null,
+        sortBy: String? = null,
+        page: Int = 1
+    ): PagedResponse<MovieResponse> = movieApi.discoverMovies(
+        genreIds, year, minimumRating, sortBy, page
+    )
 
     suspend fun getRandomTrendingMovie(): MovieResponse {
         return movieApi.getRandomTrendingMovie()
@@ -111,6 +133,10 @@ class MovieRepository @Inject constructor(
             page = page,
             size = size
         )
+    }
+
+    suspend fun getWatchlistSummary(): WatchlistSummaryResponse {
+        return movieApi.getWatchlistSummary()
     }
 
     suspend fun getWatchlistStatus(movieId: Long): WatchlistStatusResponse {

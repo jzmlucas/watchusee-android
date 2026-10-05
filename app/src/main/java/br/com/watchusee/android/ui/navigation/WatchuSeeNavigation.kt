@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,8 +24,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkBorder
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Home
@@ -33,11 +39,14 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PersonAdd
 import androidx.compose.material.icons.rounded.People
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.VideoLibrary
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.Icon
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,6 +73,7 @@ import androidx.navigation.navArgument
 import br.com.watchusee.android.ui.auth.LoginScreen
 import br.com.watchusee.android.ui.auth.RegisterScreen
 import br.com.watchusee.android.ui.detail.MovieDetailScreen
+import br.com.watchusee.android.ui.detail.MovieCastScreen
 import br.com.watchusee.android.ui.shares.SharesScreen
 import br.com.watchusee.android.ui.watchlist.LibraryScreen
 import br.com.watchusee.android.viewmodel.AuthViewModel
@@ -71,6 +81,12 @@ import br.com.watchusee.android.viewmodel.ProfileViewModel
 import br.com.watchusee.android.viewmodel.ShareViewModel
 import br.com.watchusee.android.viewmodel.WatchlistViewModel
 import br.com.watchusee.android.ui.search.SearchScreen
+import br.com.watchusee.android.ui.search.CinemaExploreScreen
+import br.com.watchusee.android.ui.home.CinemaFeedScreen
+import br.com.watchusee.android.ui.profile.CinemaProfileScreen
+import br.com.watchusee.android.ui.theme.PremiumGold
+import br.com.watchusee.android.ui.theme.TextGrey
+import br.com.watchusee.android.ui.watchlist.CinemaLibraryScreen
 
 sealed class Screen(
     val route: String,
@@ -95,14 +111,14 @@ sealed class Screen(
     data object Home : Screen(
         "home",
         "Home",
-        Icons.Rounded.Home,
+        Icons.Outlined.Home,
         Icons.Rounded.Home
     )
 
     data object Library : Screen(
         "library",
-        "Play List",
-        Icons.Rounded.VideoLibrary,
+        "Biblioteca",
+        Icons.Outlined.VideoLibrary,
         Icons.Rounded.VideoLibrary
     )
 
@@ -116,7 +132,7 @@ sealed class Screen(
     data object Profile : Screen(
         "profile",
         "My Profile",
-        Icons.Rounded.Person,
+        Icons.Outlined.Person,
         Icons.Rounded.Person
     )
 
@@ -171,9 +187,9 @@ sealed class Screen(
 
     data object Search : Screen(
         "search",
-        "Busca",
-        Icons.Rounded.Explore,
-        Icons.Rounded.Explore
+        "Buscar",
+        Icons.Rounded.Search,
+        Icons.Rounded.Search
     )
 }
 
@@ -225,14 +241,13 @@ fun WatchuSeeNavHost(
         }
 
         composable(Screen.Search.route) {
-            SearchScreen(
+            CinemaExploreScreen(
                 onMovieClick = { movieId ->
                     navController.navigate("detail/$movieId")
                 },
                 onBack = {
                     navController.popBackStack()
-                },
-                onRequireLogin = onRequireLogin
+                }
             )
         }
 
@@ -258,7 +273,7 @@ fun WatchuSeeNavHost(
         }
 
         composable(Screen.Home.route) {
-            br.com.watchusee.android.ui.home.WatchuSeeHomeScreen(
+            CinemaFeedScreen(
                 onMovieClick = { movieId ->
                     navController.navigate("detail/$movieId")
                 },
@@ -382,32 +397,11 @@ fun WatchuSeeNavHost(
         ) { backStackEntry ->
             val tab = backStackEntry.arguments?.getInt("tab") ?: 0
 
-            LibraryScreen(
+            CinemaLibraryScreen(
                 onMovieClick = { movieId ->
                     navController.navigate("detail/$movieId")
                 },
-                onNavigateToSearch = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(
-                            navController.graph.findStartDestination().id
-                        ) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                onHomeClick = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(
-                            navController.graph.findStartDestination().id
-                        ) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
+                onNavigateToSearch = { navController.navigate(Screen.Search.route) },
                 viewModel = watchlistViewModel,
                 authViewModel = authViewModel,
                 onRequireLogin = {
@@ -418,33 +412,7 @@ fun WatchuSeeNavHost(
         }
 
         composable(Screen.Profile.route) {
-            br.com.watchusee.android.ui.profile.ProfileScreen(
-                onWatchedClick = {
-                    navController.navigate(
-                        "${Screen.Library.route}?tab=1"
-                    ) {
-                        popUpTo(
-                            navController.graph.findStartDestination().id
-                        ) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                onToWatchClick = {
-                    navController.navigate(
-                        "${Screen.Library.route}?tab=0"
-                    ) {
-                        popUpTo(
-                            navController.graph.findStartDestination().id
-                        ) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
+            CinemaProfileScreen(
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) {
@@ -460,21 +428,13 @@ fun WatchuSeeNavHost(
                 },
                 viewModel = profileViewModel,
                 authViewModel = authViewModel,
-                onAboutClick = {
-                    navController.navigate(Screen.About.route)
-                },
                 onFriendsClick = {
                     navController.navigate(Screen.Friends.route)
                 },
                 onSettingsClick = {
                     navController.navigate(Screen.Settings.route)
                 },
-                onEditProfileClick = {
-                    navController.navigate(Screen.EditProfile.route)
-                },
-                onOtherProfileClick = { userId ->
-                    navController.navigate("other_profile/$userId")
-                }
+                onEditProfileClick = { navController.navigate(Screen.EditProfile.route) }
             )
         }
 
@@ -509,6 +469,14 @@ fun WatchuSeeNavHost(
             br.com.watchusee.android.ui.profile.SettingsScreen(
                 onBack = {
                     navController.popBackStack()
+                },
+                onEditProfile = {
+                    navController.navigate(Screen.EditProfile.route)
+                },
+                onLogout = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             )
         }
@@ -524,7 +492,7 @@ fun WatchuSeeNavHost(
             val userId =
                 backStackEntry.arguments?.getLong("userId") ?: 0L
 
-            br.com.watchusee.android.ui.social.OtherUserProfileScreen(
+            br.com.watchusee.android.ui.social.FigmaOtherUserProfileScreen(
                 userId = userId,
                 onBack = {
                     navController.popBackStack()
@@ -551,8 +519,27 @@ fun WatchuSeeNavHost(
                 onBack = {
                     navController.popBackStack()
                 },
+                onCastClick = {
+                    navController.navigate("cast/$movieId")
+                },
                 onRequireLogin = onRequireLogin,
                 authViewModel = authViewModel
+            )
+        }
+
+        composable(
+            route = "cast/{movieId}",
+            arguments = listOf(
+                navArgument("movieId") {
+                    type = NavType.LongType
+                }
+            )
+        ) { backStackEntry ->
+            val movieId = backStackEntry.arguments?.getLong("movieId") ?: 0L
+
+            MovieCastScreen(
+                movieId = movieId,
+                onBack = { navController.popBackStack() }
             )
         }
     }
@@ -567,8 +554,6 @@ fun WatchuSeeBottomBar(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    val pendingCount by shareViewModel.pendingCount.collectAsStateWithLifecycle()
-
     val currentRoute = currentDestination?.route
 
     if (
@@ -578,10 +563,36 @@ fun WatchuSeeBottomBar(
         return
     }
 
+    if (currentRoute == Screen.OtherProfile.route) {
+        val navigateToRoute: (String) -> Unit = { route ->
+            navController.navigate(route) {
+                popUpTo(navController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+        br.com.watchusee.android.ui.social.FigmaProfileBottomBar(
+            currentRoute = currentRoute,
+            onHomeClick = { navigateToRoute(Screen.Home.route) },
+            onSearchClick = { navigateToRoute(Screen.Search.route) },
+            onLibraryClick = {
+                if (authViewModel.isAuthenticated()) {
+                    navigateToRoute(Screen.Library.route)
+                } else {
+                    navController.navigate(Screen.Login.route)
+                }
+            },
+            onProfileClick = { navigateToRoute(Screen.Profile.route) }
+        )
+        return
+    }
+
     val items = listOf(
         Screen.Home,
+        Screen.Search,
         Screen.Library,
-        Screen.Shares,
         Screen.Profile
     )
 
@@ -602,126 +613,83 @@ fun WatchuSeeBottomBar(
     ) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = br.com.watchusee.android.ui.theme.SurfaceGrey,
-            shape = RoundedCornerShape(
-                topStart = 24.dp,
-                topEnd = 24.dp
-            ),
-            shadowElevation = 16.dp
+            shape = RoundedCornerShape(0.dp),
+            color = Color(0xFF0B0D0F),
+            shadowElevation = 0.dp
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-            ) {
-                Row(
+            Column(modifier = Modifier.fillMaxWidth()) {
+                HorizontalDivider(color = Color(0xFF2A3038), thickness = 1.dp)
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(72.dp)
-                        .padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
+                        .navigationBarsPadding()
                 ) {
-                    items.forEach { screen ->
-                        // Considera a tela de Busca como parte da aba Home para manter o ícone selecionado
-                        val isSearchOnHome = screen == Screen.Home && currentRoute == Screen.Search.route
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(72.dp)
+                            .padding(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        items.forEach { screen ->
+                            val selected = currentDestination
+                                ?.hierarchy
+                                ?.any { destination ->
+                                    destination.route == screen.route ||
+                                            destination.route?.startsWith(
+                                                "${screen.route}?"
+                                            ) == true
+                                } == true
 
-                        val selected = isSearchOnHome || currentDestination
-                            ?.hierarchy
-                            ?.any { destination ->
-                                destination.route == screen.route ||
-                                        destination.route?.startsWith(
-                                            "${screen.route}?"
-                                        ) == true
-                            } == true
-
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .clickable(
-                                    interactionSource = remember {
-                                        MutableInteractionSource()
-                                    },
-                                    indication = null
-                                ) {
-                                    if (screen == Screen.Library && !authViewModel.isAuthenticated()) {
-                                        navController.navigate(Screen.Login.route)
-                                    } else if (screen == Screen.Home && currentRoute == Screen.Search.route) {
-                                        // Se estiver na busca e clicar em Home, volta para a Home limpando a busca
-                                        navController.popBackStack(Screen.Home.route, inclusive = false)
-                                    } else {
-                                        navController.navigate(screen.route) {
-                                            popUpTo(
-                                                navController.graph.findStartDestination().id
-                                            ) {
-                                                saveState = true
-                                            }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    }
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
                             Box(
                                 modifier = Modifier
-                                    .height(44.dp)
-                                    .width(64.dp)
-                                    .clip(
-                                        RoundedCornerShape(20.dp)
-                                    )
-                                    .background(
-                                        if (selected) {
-                                            br.com.watchusee.android.ui.theme.PremiumGold
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clickable(
+                                        interactionSource = remember {
+                                            MutableInteractionSource()
+                                        },
+                                        indication = null
+                                    ) {
+                                        if (screen == Screen.Library && !authViewModel.isAuthenticated()) {
+                                            navController.navigate(Screen.Login.route)
+                                        } else if (screen == Screen.Home && currentRoute == Screen.Search.route) {
+                                            navController.popBackStack(Screen.Home.route, inclusive = false)
                                         } else {
-                                            Color.Transparent
+                                            navController.navigate(screen.route) {
+                                                popUpTo(
+                                                    navController.graph.findStartDestination().id
+                                                ) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
                                         }
-                                    ),
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = if (selected) {
-                                        screen.selectedIcon
-                                    } else {
-                                        screen.icon
-                                    },
-                                    contentDescription = screen.title,
-                                    modifier = Modifier.size(26.dp),
-                                    tint = if (selected) {
-                                        Color.Black
-                                    } else {
-                                        br.com.watchusee.android.ui.theme.TextGrey
-                                    }
-                                )
-
-                                if (
-                                    screen == Screen.Shares &&
-                                    pendingCount > 0
+                                Box(
+                                    modifier = Modifier
+                                        .height(52.dp)
+                                        .width(64.dp)
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(Color.Transparent),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(16.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                br.com.watchusee.android.ui.theme.CinemaRed
-                                            )
-                                            .align(Alignment.TopEnd)
-                                            .offset(
-                                                x = 4.dp,
-                                                y = (-4).dp
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(
+                                            imageVector = if (selected) screen.selectedIcon else screen.icon,
+                                            contentDescription = screen.title,
+                                            modifier = Modifier.size(20.dp),
+                                            tint = if (selected) PremiumGold else TextGrey
+                                        )
                                         Text(
-                                            text = if (pendingCount > 9) {
-                                                "9+"
-                                            } else {
-                                                pendingCount.toString()
-                                            },
-                                            color = Color.White,
-                                            fontSize = 8.sp,
-                                            fontWeight = FontWeight.Bold
+                                            text = screen.title,
+                                            color = if (selected) PremiumGold else TextGrey,
+                                            fontSize = 10.sp,
+                                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
                                         )
                                     }
                                 }

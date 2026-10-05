@@ -4,6 +4,7 @@ import br.com.watchusee.android.data.api.MovieApi
 import br.com.watchusee.android.data.dto.LoginRequest
 import br.com.watchusee.android.data.dto.LoginResponse
 import br.com.watchusee.android.data.dto.RegisterRequest
+import br.com.watchusee.android.data.dto.RefreshTokenRequest
 import br.com.watchusee.android.data.dto.UserResponse
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +45,12 @@ class AuthRepository @Inject constructor(
 
     suspend fun login(request: LoginRequest): LoginResponse {
         val response = api.login(request)
-        tokenManager.saveAuthData(response.id, response.nick, response.token)
+        tokenManager.saveAuthData(
+            response.id,
+            response.nick,
+            response.token,
+            response.refreshToken
+        )
         _currentUser.value = UserResponse(
             id = response.id,
             nick = response.nick,
@@ -55,11 +61,36 @@ class AuthRepository @Inject constructor(
 
     suspend fun register(request: RegisterRequest): UserResponse {
         val user = api.register(request)
-        user.token?.let { 
-            tokenManager.saveAuthData(user.id, user.nick, it)
+        // O backend cria a conta sem emitir token. Fazemos login imediatamente
+        // para que o usuário não caia na home como convidado após cadastrar.
+        login(LoginRequest(request.nick, request.password))
+        return user.copy(token = tokenManager.getToken())
+    }
+
+    suspend fun refresh(): Boolean {
+        val refreshToken = tokenManager.getRefreshToken() ?: return false
+        return try {
+            val response = api.refreshToken(RefreshTokenRequest(refreshToken))
+            tokenManager.saveAuthData(
+                response.id,
+                response.nick,
+                response.token,
+                response.refreshToken
+            )
+            _currentUser.value = UserResponse(response.id, response.nick, response.token)
+            true
+        } catch (_: Exception) {
+            logout()
+            false
         }
-        _currentUser.value = user
-        return user
+    }
+
+    suspend fun logoutRemote() {
+        try {
+            if (isAuthenticated()) api.logout()
+        } finally {
+            logout()
+        }
     }
 
     fun logout() {

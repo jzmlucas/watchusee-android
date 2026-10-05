@@ -8,5 +8,19 @@ data class UserProfileResponse(
     val toWatchMovies: Int = 0,
     val friendsCount: Int = 0,
     val avatarIcon: String? = null,
-    val favoriteMovie: MovieResponse? = null
+    val favoriteMovie: MovieResponse? = null,
+    val bio: String? = null,
+    val city: String? = null,
+    val coverUrl: String? = null,
+    val affinityPercent: Int? = null,
+    val commonGenres: List<String> = emptyList(),
+    val publicLists: List<PublicListResponse> = emptyList(),
+    val favoriteGenres: List<String> = emptyList(),
+    val favoriteMovies: List<FavoriteMovieResponse> = emptyList()
+)
+
+data class FavoriteMovieResponse(
+    val id: Long,
+    val title: String,
+    val posterPath: String?
 )

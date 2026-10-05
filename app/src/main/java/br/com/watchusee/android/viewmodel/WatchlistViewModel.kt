@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.watchusee.android.data.dto.MovieResponse
 import br.com.watchusee.android.data.dto.WatchlistItemResponse
+import br.com.watchusee.android.data.dto.WatchlistSummaryResponse
 import br.com.watchusee.android.data.repository.MovieRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +34,9 @@ sealed interface WatchlistUiState {
 class WatchlistViewModel @Inject constructor(
     private val repository: MovieRepository
 ) : ViewModel() {
+
+    private val _summary = MutableStateFlow<WatchlistSummaryResponse?>(null)
+    val summary: StateFlow<WatchlistSummaryResponse?> = _summary.asStateFlow()
 
     companion object {
         private const val PAGE_SIZE = 20
@@ -213,6 +217,7 @@ class WatchlistViewModel @Inject constructor(
             try {
                 loadToWatchInternal(refresh = true)
                 loadWatchedInternal(refresh = true)
+                loadSummaryInternal()
             } catch (e: Exception) {
                 android.util.Log.e(
                     "WatchlistViewModel",
@@ -231,6 +236,17 @@ class WatchlistViewModel @Inject constructor(
                 _isRefreshing.value = false
             }
         }
+    }
+
+    fun loadSummary() {
+        viewModelScope.launch {
+            runCatching { repository.getWatchlistSummary() }
+                .onSuccess { _summary.value = it }
+        }
+    }
+
+    private suspend fun loadSummaryInternal() {
+        _summary.value = repository.getWatchlistSummary()
     }
 
     fun loadToWatch(

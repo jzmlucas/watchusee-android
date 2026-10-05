@@ -205,18 +205,6 @@ private fun AnimatedNumber(
     )
 }
 
-private val INTERSTELLAR_MOCK = MovieResponse(
-    id = 157336,
-    title = "Interestelar",
-    overview = "As reservas naturais da Terra estão se esgotando. Um grupo de astronautas viaja através de um buraco de minhoca em busca de um novo lar para a humanidade.",
-    releaseDate = "2014-11-05",
-    posterPath = "/gEU2tW43Mh2oKWfn96jBv2mQpbp.jpg",
-    backdropPath = "/xJHbZkMjiMsAQCFIUrk9UAmSfg1.jpg",
-    rating = 8.4,
-    voteCount = 32000,
-    runtime = 169
-)
-
 @Composable
 private fun ProfileContent(
     profile: UserProfileResponse,
@@ -234,7 +222,7 @@ private fun ProfileContent(
     socialViewModel: br.com.watchusee.android.viewmodel.SocialViewModel
 ) {
     val scrollState = rememberScrollState()
-    val movieToDisplay = profile.favoriteMovie ?: INTERSTELLAR_MOCK
+    val movieToDisplay = profile.favoriteMovie
 
     Column(
         modifier = Modifier
@@ -245,9 +233,7 @@ private fun ProfileContent(
         Box(
             modifier = Modifier.fillMaxWidth()
         ) {
-            val bannerMovie = movieToDisplay
-
-            bannerMovie.let { movie ->
+            movieToDisplay?.let { movie ->
                 AsyncImage(
                     model = TmdbImageUrl.getBackdropUrl(movie.backdropPath)
                         ?: TmdbImageUrl.getPosterUrl(movie.posterPath, "w780"),
@@ -431,12 +417,12 @@ private fun ProfileContent(
             color = Color.White.copy(alpha = 0.06f)
         )
 
-        FavoriteMovieFeed(
-            movie = movieToDisplay,
-            onClick = {
-                onMovieClick(movieToDisplay.id)
-            }
-        )
+        movieToDisplay?.let { favoriteMovie ->
+            FavoriteMovieFeed(
+                movie = favoriteMovie,
+                onClick = { onMovieClick(favoriteMovie.id) }
+            )
+        } ?: EmptyFavoriteMovieState()
 
         if (recentlyWatched.isNotEmpty()) {
             RecentWatchedSection(
@@ -452,6 +438,29 @@ private fun ProfileContent(
         )
 
         Spacer(modifier = Modifier.height(100.dp))
+    }
+}
+
+@Composable
+private fun EmptyFavoriteMovieState() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.Movie,
+            contentDescription = null,
+            tint = TextGrey.copy(alpha = 0.65f),
+            modifier = Modifier.size(32.dp)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Escolha um filme favorito no editar perfil",
+            color = TextGrey,
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 

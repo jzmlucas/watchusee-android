@@ -23,7 +23,15 @@ data class MovieDetailsResponse(
     val budget: Long?,
     val revenue: Long?,
     val productionCompanies: List<ProductionCompanyResponse>?,
-    val productionCountries: List<ProductionCountryResponse>?
+    val productionCountries: List<ProductionCountryResponse>?,
+    val cast: List<MovieCastMemberResponse> = emptyList()
+)
+
+data class MovieCastMemberResponse(
+    val id: Long,
+    val name: String,
+    val character: String?,
+    val profilePath: String?
 )
 
 data class SpokenLanguageResponse(

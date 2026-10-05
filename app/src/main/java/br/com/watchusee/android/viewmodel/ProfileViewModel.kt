@@ -24,6 +24,7 @@ sealed interface ProfileUiState {
     data class Success(
         val profile: UserProfileResponse,
         val recentlyWatched: List<MovieResponse>,
+        val toWatchMovies: List<MovieResponse> = emptyList(),
         val friendCount: Int = 0
     ) : ProfileUiState
 
@@ -126,6 +127,12 @@ class ProfileViewModel @Inject constructor(
                         size = WATCHED_PAGE_SIZE
                     )
 
+                val toWatchList =
+                    movieRepository.getToWatchList(
+                        page = WATCHED_PAGE,
+                        size = WATCHED_PAGE_SIZE
+                    )
+
                 val friendCount =
                     profile.friendsCount
 
@@ -134,10 +141,15 @@ class ProfileViewModel @Inject constructor(
                         .take(RECENT_MOVIES_LIMIT)
                         .map { it.movie }
 
+                val toWatchMovies =
+                    toWatchList.content
+                        .map { it.movie }
+
                 _uiState.value =
                     ProfileUiState.Success(
                         profile = profile,
                         recentlyWatched = recentlyWatched,
+                        toWatchMovies = toWatchMovies,
                         friendCount = friendCount
                     )
             } catch (e: Exception) {

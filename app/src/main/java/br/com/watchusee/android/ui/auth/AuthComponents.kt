@@ -37,26 +37,18 @@ fun AuthBackground(
     content: @Composable BoxScope.() -> Unit
 ) {
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0B0D0F))
     ) {
-        AsyncImage(
-            model = "https://images.pexels.com/photos/38131980/pexels-photo-38131980.jpeg",
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxSize()
-                .blur(14.dp)
-                .scale(1.08f),
-            contentScale = ContentScale.Crop
-        )
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFF080B10).copy(alpha = 0.82f),
-                            Color(0xFF05080C).copy(alpha = 0.94f)
+                            Color(0xFF0B0D0F),
+                            Color(0xFF161A20)
                         )
                     )
                 )
@@ -68,7 +60,7 @@ fun AuthBackground(
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            PremiumGold.copy(alpha = 0.045f),
+                            PremiumGold.copy(alpha = 0.08f),
                             Color.Transparent
                         ),
                         radius = 900f,

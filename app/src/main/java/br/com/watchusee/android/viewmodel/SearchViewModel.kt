@@ -34,7 +34,9 @@ class SearchViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _uiState =
-        MutableStateFlow<SearchUiState>(SearchUiState.Loading)
+        // A busca começa em estado neutro enquanto as tendências são carregadas
+        // em background; isso evita que a tela de busca nasça como erro/loading.
+        MutableStateFlow<SearchUiState>(SearchUiState.Idle())
 
     val uiState: StateFlow<SearchUiState> =
         _uiState.asStateFlow()
@@ -65,7 +67,7 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 trendingMovies =
-                    repository.getTrendingMovies()
+                    repository.getTrendingMovies() ?: emptyList()
 
                 if (trendingMovies.isEmpty()) {
                     trendingMovies =
@@ -102,17 +104,15 @@ class SearchViewModel @Inject constructor(
 
             } catch (e: Exception) {
 
-                android.util.Log.e(
-                    "SearchViewModel",
-                    "Erro ao buscar tendências: ${e.message}",
-                    e
-                )
+                // Não dependemos de android.util.Log no fallback para manter o
+                // ViewModel testável também no ambiente JVM local.
+                println("SearchViewModel: erro ao buscar tendências: ${e.message}")
 
                 try {
-                    trendingMovies =
-                        repository
-                            .getTopRatedMovies(1)
-                            .results
+                        trendingMovies =
+                            repository
+                                .getTopRatedMovies(1)
+                                .results
                 } catch (inner: Exception) {
                 }
 
@@ -143,7 +143,7 @@ class SearchViewModel @Inject constructor(
 
         _uiState.value = SearchUiState.Loading
         try {
-            val movies = repository.searchMovies(normalizedQuery)
+            val movies = repository.searchMovies(normalizedQuery) ?: emptyList()
             if (movies.isEmpty()) {
                 _uiState.value = SearchUiState.Empty
             } else {

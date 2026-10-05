@@ -9,8 +9,8 @@ import javax.inject.Singleton
 class SocialRepository @Inject constructor(
     private val socialApi: SocialApi
 ) {
-    suspend fun changePassword(old: String, new: String) {
-        socialApi.changePassword(ChangePasswordRequest(old, new))
+    suspend fun changePassword(current: String, new: String) {
+        socialApi.changePassword(ChangePasswordRequest(current, new))
     }
 
     suspend fun sendFriendRequest(userId: Long) {
@@ -53,12 +53,28 @@ class SocialRepository @Inject constructor(
         socialApi.updateAvatarIcon(UpdateAvatarIconRequest(icon))
     }
 
+    suspend fun updatePublicProfile(bio: String?, city: String?, coverUrl: String?) {
+        socialApi.updatePublicProfile(UpdatePublicProfileRequest(bio, city, coverUrl))
+    }
+
     suspend fun updateFavoriteMovie(movieId: Long) {
         socialApi.updateFavoriteMovie(UpdateFavoriteMovieRequest(movieId))
     }
 
     suspend fun removeFavoriteMovie() {
         socialApi.removeFavoriteMovie()
+    }
+
+    suspend fun updateFavoriteGenres(genres: List<FavoriteGenreRequest>) {
+        socialApi.updateFavoriteGenres(genres)
+    }
+
+    suspend fun getMovieLists(): List<UserMovieListResponse> {
+        return socialApi.getMovieLists()
+    }
+
+    suspend fun createMovieList(name: String, description: String? = null): UserMovieListResponse {
+        return socialApi.createMovieList(CreateMovieListRequest(name, description))
     }
 
     suspend fun getUserProfile(userId: Long): UserProfileResponse {

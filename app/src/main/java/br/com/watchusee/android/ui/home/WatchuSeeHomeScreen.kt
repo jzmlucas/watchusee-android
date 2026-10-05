@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -66,7 +67,7 @@ fun WatchuSeeHomeScreen(
     }
 
     Scaffold(
-        containerColor = DarkNavy,
+        containerColor = Color.Black,
         topBar = {
             WatchuSeeHeader(
                 onProfileClick = onProfileClick,
@@ -166,44 +167,25 @@ fun WatchuSeeHeader(
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
 
-        Surface(
-            modifier = Modifier
-                .weight(1f)
-                .height(48.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .clickable { onSearchClick() },
-            color = SurfaceGrey
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        Text(
+            text = "WATCHUSEE",
+            color = PremiumGold,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = (-0.8).sp,
+            modifier = Modifier.weight(1f)
+        )
 
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Pesquisar filmes",
-                    tint = PremiumGold,
-                    modifier = Modifier.size(22.dp)
-                )
+        HeaderIcon(
+            imageVector = Icons.Default.Search,
+            onClick = onSearchClick
+        )
 
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Text(
-                    text = "Procurar por filmes...",
-                    color = TextGrey,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(10.dp))
 
         Surface(
             modifier = Modifier
@@ -211,14 +193,22 @@ fun WatchuSeeHeader(
                 .clip(CircleShape)
                 .border(1.dp, GraySubtle, CircleShape)
                 .clickable { onProfileClick() },
-            color = SurfaceGrey
+            color = Color.Transparent
         ) {
-            AsyncImage(
-                model = profileImageUrl
-                    ?: "https://i.pinimg.com/564x/0e/90/ee/0e90ee3f40e3dd616d2a2e50c0c1f23e.jpg",
-                contentDescription = "Profile",
-                contentScale = ContentScale.Crop
-            )
+            if (profileImageUrl != null) {
+                AsyncImage(
+                    model = profileImageUrl,
+                    contentDescription = "Profile",
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Rounded.Person,
+                    contentDescription = "Perfil",
+                    tint = TextGrey,
+                    modifier = Modifier.padding(9.dp)
+                )
+            }
         }
     }
 }
@@ -232,7 +222,7 @@ fun HeaderIcon(
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(JetBlack.copy(alpha = 0.6f))
+                .background(SurfaceGrey)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
@@ -271,9 +261,9 @@ fun HeroCarousel(
             state = pagerState,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(420.dp),
-            contentPadding = PaddingValues(horizontal = 24.dp),
-            pageSpacing = 16.dp
+                .height(455.dp),
+            contentPadding = PaddingValues(horizontal = 0.dp),
+            pageSpacing = 0.dp
         ) { page ->
             val movie = movies[page]
             val status = if (isLoggedIn) watchlistStatusMap[movie.id] else null
@@ -327,14 +317,15 @@ fun HeroCard(
     Card(
         modifier = Modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(0.dp))
             .clickable { onClick() },
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceGrey)
+        shape = RoundedCornerShape(0.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Black)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             AsyncImage(
-                model = TmdbImageUrl.getPosterUrl(movie.posterPath, "w780"),
+                model = TmdbImageUrl.getBackdropUrl(movie.backdropPath, "w1280")
+                    ?: TmdbImageUrl.getPosterUrl(movie.posterPath, "w780"),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
@@ -347,7 +338,7 @@ fun HeroCard(
                         Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
-                                DarkNavy.copy(alpha = 0.8f)
+                                Color.Black.copy(alpha = 0.9f)
                             ),
                             startY = 300f
                         )
@@ -525,7 +516,7 @@ fun MovieHorizontalSection(
             color = Color.White,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 24.dp)
+            modifier = Modifier.padding(horizontal = 20.dp)
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -534,7 +525,7 @@ fun MovieHorizontalSection(
             state = pagerState,
             contentPadding = PaddingValues(horizontal = 24.dp),
             pageSpacing = 16.dp,
-            pageSize = PageSize.Fixed(160.dp),
+            pageSize = PageSize.Fixed(142.dp),
             modifier = Modifier.fillMaxWidth()
         ) { page ->
             val movie = movies[page]
@@ -557,9 +548,9 @@ fun MoviePosterCard(
     Column(modifier = Modifier.width(160.dp)) {
         Box(
             modifier = Modifier
-                .width(160.dp)
-                .height(240.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .width(142.dp)
+                .height(213.dp)
+                .clip(RoundedCornerShape(4.dp))
                 .clickable { onClick() }
         ) {
             AsyncImage(
@@ -604,7 +595,7 @@ fun MoviePosterCard(
             if (libraryStatus != null) {
                 val icon = if (libraryStatus == "WATCHED") Icons.Default.CheckCircle else Icons.Default.Bookmark
                 val bgColor = if (libraryStatus == "WATCHED") PremiumGold else AccentBlue
-                
+
                 Box(
                     modifier = Modifier
                         .padding(8.dp)
@@ -629,7 +620,7 @@ fun MoviePosterCard(
         Text(
             text = movie.title,
             color = Color.White,
-            fontSize = 14.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

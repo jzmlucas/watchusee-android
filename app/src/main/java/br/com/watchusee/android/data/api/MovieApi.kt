@@ -10,6 +10,11 @@ interface MovieApi {
         @Body request: LoginRequest
     ): LoginResponse
 
+    @POST("api/v1/auth/refresh")
+    suspend fun refreshToken(
+        @Body request: RefreshTokenRequest
+    ): LoginResponse
+
     @POST("api/v1/users")
     suspend fun register(
         @Body request: RegisterRequest
@@ -75,10 +80,34 @@ interface MovieApi {
         @Path("movieId") movieId: Long
     ): MovieDetailsResponse
 
+    @GET("api/v1/movies/{movieId}/cast")
+    suspend fun getMovieCast(
+        @Path("movieId") movieId: Long
+    ): List<MovieCastMemberResponse>
+
     @GET("api/v1/movies/{movieId}/trailer")
     suspend fun getMovieTrailer(
         @Path("movieId") movieId: Long
     ): MovieTrailerResponse
+
+    @GET("api/v1/movies/{movieId}/images")
+    suspend fun getMovieImages(
+        @Path("movieId") movieId: Long
+    ): MovieImagesResponse
+
+    @GET("api/v1/movies/{movieId}/external-ids")
+    suspend fun getMovieExternalIds(
+        @Path("movieId") movieId: Long
+    ): MovieExternalIdsResponse
+
+    @GET("api/v1/movies/discover")
+    suspend fun discoverMovies(
+        @Query("genreIds") genreIds: List<Int>? = null,
+        @Query("year") year: Int? = null,
+        @Query("minimumRating") minimumRating: Double? = null,
+        @Query("sortBy") sortBy: String? = null,
+        @Query("page") page: Int = 1
+    ): PagedResponse<MovieResponse>
 
     @GET("api/v1/movies/trending/random")
     suspend fun getRandomTrendingMovie(): MovieResponse
@@ -104,6 +133,9 @@ interface MovieApi {
         @Query("size") size: Int = 20
     ): WatchlistPagedResponse
 
+    @GET("api/v1/watchlist/summary")
+    suspend fun getWatchlistSummary(): WatchlistSummaryResponse
+
     @GET("api/v1/watchlist/{movieId}")
     suspend fun getWatchlistItem(
         @Path("movieId") movieId: Long
@@ -111,6 +143,9 @@ interface MovieApi {
 
     @GET("api/v1/users/me/profile")
     suspend fun getProfile(): UserProfileResponse
+
+    @POST("api/v1/auth/logout")
+    suspend fun logout()
 
     @POST("api/v1/shares")
     suspend fun createShare(

@@ -184,7 +184,7 @@ fun MoviePosterCard(
                     isToWatch -> primaryColor
                     else -> errorColor
                 }
-                
+
                 scope.launch {
                     feedbackAlpha.snapTo(0.8f)
                     feedbackScale.snapTo(0.6f)

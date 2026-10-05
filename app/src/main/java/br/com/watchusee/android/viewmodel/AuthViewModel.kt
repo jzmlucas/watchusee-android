@@ -99,7 +99,7 @@ class AuthViewModel @Inject constructor(
 
     fun logout(onComplete: () -> Unit) {
         viewModelScope.launch {
-            repository.logout()
+            repository.logoutRemote()
             onComplete()
         }
     }

@@ -14,6 +14,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -95,8 +96,11 @@ fun RegisterScreen(
         }
     }
 
-    val isPasswordValid =
-        password.length >= 6
+    val hasMinLength = password.length >= 8
+    val hasUpperCase = password.any { it.isUpperCase() }
+    val hasSymbol = password.any { !it.isLetterOrDigit() }
+
+    val isPasswordValid = hasMinLength && hasUpperCase && hasSymbol
 
     val doPasswordsMatch =
         password == confirmPassword
@@ -145,7 +149,7 @@ fun RegisterScreen(
                     modifier = Modifier.background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                Color(0xFF080B10).copy(alpha = 0.70f),
+                                Color(0xFF000000).copy(alpha = 0.85f),
                                 Color.Transparent
                             )
                         )
@@ -210,7 +214,7 @@ fun RegisterScreen(
                         onValueChange = {
                             password = it
                         },
-                        label = "Senha (Mín. 6 caracteres)",
+                        label = "Senha",
                         leadingIcon = Icons.Rounded.Lock,
                         isPassword = true,
                         passwordVisible = passwordVisible,
@@ -226,11 +230,29 @@ fun RegisterScreen(
                                 password.isNotEmpty() &&
                                 !isPasswordValid
                             ) {
-                                "Mínimo 6 caracteres"
+                                "Precisa ter mais de 8 caracteres, letra maiúscula e símbolo."
                             } else {
                                 null
                             }
                     )
+
+                    Spacer(
+                        modifier = Modifier.height(10.dp)
+                    )
+
+                    // FORÇA DA SENHA E REQUISITOS
+                    if (password.isNotEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            PasswordStrengthIndicator(password = password)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            PasswordRequirementRow("Mais de 8 caracteres", hasMinLength)
+                            PasswordRequirementRow("Pelo menos uma letra maiúscula", hasUpperCase)
+                            PasswordRequirementRow("Pelo menos um símbolo", hasSymbol)
+                        }
+                    }
 
                     Spacer(
                         modifier = Modifier.height(16.dp)
@@ -263,21 +285,6 @@ fun RegisterScreen(
                                 null
                             }
                     )
-
-                    Spacer(
-                        modifier = Modifier.height(10.dp)
-                    )
-
-                    // FORÇA DA SENHA
-                    if (
-                        password.isNotEmpty() &&
-                        isPasswordValid
-                    ) {
-
-                        PasswordStrengthIndicator(
-                            password = password
-                        )
-                    }
 
                     Spacer(
                         modifier = Modifier.height(24.dp)
@@ -371,7 +378,7 @@ fun RegisterScreen(
                             colors =
                                 CheckboxDefaults.colors(
                                     checkedColor =
-                                        PremiumGold,
+                                        CinemaAccent,
                                     uncheckedColor =
                                         GraySubtle
                                 ),
@@ -399,7 +406,7 @@ fun RegisterScreen(
 
                             Text(
                                 text = "Termos de Uso",
-                                color = PremiumGold,
+                                color = CinemaAccent,
                                 style =
                                     MaterialTheme.typography.labelSmall,
                                 fontWeight =
@@ -476,5 +483,27 @@ fun RegisterScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PasswordRequirementRow(text: String, satisfied: Boolean) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .background(
+                    color = if (satisfied) CinemaAccent else TextGrey.copy(alpha = 0.4f),
+                    shape = CircleShape
+                )
+        )
+        Text(
+            text = text,
+            color = if (satisfied) CinemaAccent else TextGrey.copy(alpha = 0.6f),
+            style = MaterialTheme.typography.labelSmall
+        )
     }
 }

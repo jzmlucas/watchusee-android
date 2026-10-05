@@ -5,6 +5,10 @@ data class LoginRequest(
     val password: String
 )
 
+data class RefreshTokenRequest(
+    val refreshToken: String
+)
+
 data class RegisterRequest(
     val nick: String,
     val password: String

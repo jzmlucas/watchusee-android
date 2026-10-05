@@ -10,7 +10,6 @@ data class WatchlistItemResponse(
 
 data class WatchlistPagedResponse(
     val content: List<WatchlistItemResponse>,
-    @SerializedName("number")
     val page: Int,
     val size: Int,
     val totalElements: Long,
@@ -21,4 +20,15 @@ data class WatchlistPagedResponse(
 
 data class WatchlistRequest(
     val status: String
+)
+
+data class WatchlistSummaryResponse(
+    val toWatchCount: Long,
+    val watchedCount: Long,
+    val totalCount: Long,
+    val toWatchPercentage: Int,
+    val watchedPercentage: Int,
+    val watchedThisMonth: Long,
+    val trackedThisMonth: Long,
+    val monthWatchedPercentage: Int
 )
